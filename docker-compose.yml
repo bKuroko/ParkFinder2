@@ -1,0 +1,20 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: parkfinder-postgres
+    environment:
+      POSTGRES_DB: parkfinder
+      POSTGRES_USER: parkfinder
+      POSTGRES_PASSWORD: parkfinder
+    ports:
+      - "6543:5432"
+    volumes:
+      - parkfinder_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U parkfinder -d parkfinder"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  parkfinder_pgdata:

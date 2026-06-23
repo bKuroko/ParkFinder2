@@ -1,0 +1,318 @@
+:root {
+  color: #172033;
+  background: #f6f8fb;
+  font-family:
+    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+.login-shell,
+.state-page {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+
+.login-panel {
+  width: min(420px, 100%);
+  display: grid;
+  gap: 18px;
+  border: 1px solid #d9e2ec;
+  border-radius: 8px;
+  padding: 28px;
+  background: #ffffff;
+  box-shadow: 0 18px 50px rgba(23, 32, 51, 0.08);
+}
+
+.brand-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 6px;
+}
+
+.brand-icon {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  background: #e8f5ee;
+  color: #276749;
+}
+
+h1,
+h2,
+p {
+  margin: 0;
+}
+
+.login-panel h1 {
+  font-size: 24px;
+}
+
+.login-panel p,
+.topbar p,
+.panel-header span,
+.camera-item span,
+.metric-card small,
+.log-item time {
+  color: #596579;
+}
+
+label {
+  display: grid;
+  gap: 8px;
+  font-weight: 800;
+}
+
+input {
+  width: 100%;
+  border: 1px solid #ccd6e3;
+  border-radius: 8px;
+  padding: 12px 14px;
+  color: #172033;
+  background: #ffffff;
+}
+
+.login-panel button,
+.secondary-button {
+  border: 0;
+  border-radius: 8px;
+  font-weight: 900;
+}
+
+.login-panel button {
+  padding: 13px 16px;
+  color: #ffffff;
+  background: #276749;
+}
+
+.error-text {
+  color: #b42318;
+  font-weight: 700;
+}
+
+.dashboard-shell {
+  width: min(1180px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 28px 0 48px;
+}
+
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 20px;
+}
+
+.topbar h1 {
+  margin-top: 4px;
+  font-size: clamp(28px, 4vw, 42px);
+}
+
+.eyebrow {
+  color: #276749;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 12px;
+}
+
+.topbar-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.secondary-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: #ffffff;
+  color: #172033;
+  border: 1px solid #d9e2ec;
+}
+
+.metrics-grid {
+  margin-top: 26px;
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.metric-card {
+  min-height: 118px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  border-radius: 8px;
+  border: 1px solid #d9e2ec;
+  background: #ffffff;
+  padding: 16px;
+}
+
+.metric-card span {
+  color: #596579;
+  font-weight: 800;
+  font-size: 13px;
+}
+
+.metric-card strong {
+  font-size: 30px;
+}
+
+.metric-card-success {
+  background: #effaf4;
+  border-color: #9fd8bd;
+}
+
+.metric-card-danger {
+  background: #fff4f2;
+  border-color: #f2b8b5;
+}
+
+.dashboard-grid {
+  margin-top: 18px;
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 18px;
+}
+
+.panel {
+  border-radius: 8px;
+  border: 1px solid #d9e2ec;
+  background: #ffffff;
+  padding: 18px;
+}
+
+.span-2 {
+  grid-column: span 2;
+}
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.panel h2 {
+  font-size: 18px;
+}
+
+.trend-chart {
+  height: 250px;
+}
+
+.trend-chart svg {
+  width: 100%;
+  height: 220px;
+  border-radius: 8px;
+  background:
+    linear-gradient(#e8edf4 1px, transparent 1px),
+    linear-gradient(90deg, #e8edf4 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+.trend-axis {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 8px;
+  color: #596579;
+  font-size: 13px;
+}
+
+.camera-list,
+.log-list {
+  display: grid;
+  gap: 10px;
+}
+
+.camera-item,
+.log-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  border: 1px solid #edf1f6;
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.camera-item div {
+  display: grid;
+  gap: 4px;
+}
+
+.camera-item b,
+.log-level {
+  text-transform: uppercase;
+  font-size: 12px;
+}
+
+.online {
+  color: #27834f;
+}
+
+.offline,
+.log-level.error {
+  color: #b42318;
+}
+
+.log-item {
+  align-items: center;
+}
+
+.log-item p {
+  flex: 1;
+}
+
+.log-level {
+  color: #276749;
+  font-weight: 900;
+}
+
+@media (max-width: 980px) {
+  .metrics-grid,
+  .dashboard-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 680px) {
+  .topbar,
+  .camera-item,
+  .log-item {
+    flex-direction: column;
+  }
+
+  .metrics-grid,
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .span-2 {
+    grid-column: span 1;
+  }
+}

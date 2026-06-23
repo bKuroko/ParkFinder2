@@ -1,0 +1,27 @@
+{
+  "facility_id": 1,
+  "camera_id": 1,
+  "model_name": "yolov8n.pt",
+  "frame_skip": 5,
+  "post_interval_seconds": 5,
+  "confidence_threshold": 0.35,
+  "slot_overlap_threshold": 0.12,
+  "presence_frames": 1,
+  "vacancy_frames": 2,
+  "overlay_alpha": 0.28,
+  "vehicle_class_ids": [2, 3, 5, 7],
+  "slots": [
+    { "slot_number": "A1", "polygon": [{ "x": 80, "y": 120 }, { "x": 152, "y": 120 }, { "x": 152, "y": 248 }, { "x": 80, "y": 248 }] },
+    { "slot_number": "A2", "polygon": [{ "x": 175, "y": 120 }, { "x": 247, "y": 120 }, { "x": 247, "y": 248 }, { "x": 175, "y": 248 }] },
+    { "slot_number": "A3", "polygon": [{ "x": 270, "y": 120 }, { "x": 342, "y": 120 }, { "x": 342, "y": 248 }, { "x": 270, "y": 248 }] },
+    { "slot_number": "A4", "polygon": [{ "x": 365, "y": 120 }, { "x": 437, "y": 120 }, { "x": 437, "y": 248 }, { "x": 365, "y": 248 }] },
+    { "slot_number": "A5", "polygon": [{ "x": 460, "y": 120 }, { "x": 532, "y": 120 }, { "x": 532, "y": 248 }, { "x": 460, "y": 248 }] },
+    { "slot_number": "A6", "polygon": [{ "x": 555, "y": 120 }, { "x": 627, "y": 120 }, { "x": 627, "y": 248 }, { "x": 555, "y": 248 }] },
+    { "slot_number": "B1", "polygon": [{ "x": 80, "y": 330 }, { "x": 152, "y": 330 }, { "x": 152, "y": 458 }, { "x": 80, "y": 458 }] },
+    { "slot_number": "B2", "polygon": [{ "x": 175, "y": 330 }, { "x": 247, "y": 330 }, { "x": 247, "y": 458 }, { "x": 175, "y": 458 }] },
+    { "slot_number": "B3", "polygon": [{ "x": 270, "y": 330 }, { "x": 342, "y": 330 }, { "x": 342, "y": 458 }, { "x": 270, "y": 458 }] },
+    { "slot_number": "B4", "polygon": [{ "x": 365, "y": 330 }, { "x": 437, "y": 330 }, { "x": 437, "y": 458 }, { "x": 365, "y": 458 }] },
+    { "slot_number": "B5", "polygon": [{ "x": 460, "y": 330 }, { "x": 532, "y": 330 }, { "x": 532, "y": 458 }, { "x": 460, "y": 458 }] },
+    { "slot_number": "B6", "polygon": [{ "x": 555, "y": 330 }, { "x": 627, "y": 330 }, { "x": 627, "y": 458 }, { "x": 555, "y": 458 }] }
+  ]
+}
