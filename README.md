@@ -140,3 +140,5 @@ The AI endpoint requires the `X-API-Key` header. The default development key is 
 - The backend creates tables automatically in development when `CREATE_TABLES_ON_START=true`.
 - The seed script inserts one sample facility, one camera, 12 parking slots, sample history, logs, and an admin restricted to that facility.
 - Replace the sample slot coordinates in `ai_processing/config/parking_slots.sample.json` with real CCTV-calibrated polygons for production footage.
+
+bahog tiktik
