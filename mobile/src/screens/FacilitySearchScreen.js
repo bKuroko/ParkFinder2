@@ -10,19 +10,29 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
-import { searchFacilities } from "../api/client";
+import { getCachedFacilities, searchFacilities } from "../api/client";
 
 export default function FacilitySearchScreen({ onSelectFacility }) {
   const [search, setSearch] = useState("");
   const [facilities, setFacilities] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
     let isActive = true;
-    setLoading(true);
+    const query = search.trim();
+    if (!query) {
+      setFacilities([]);
+      setLoading(false);
+      setError("");
+      return () => {
+        isActive = false;
+      };
+    }
+
     const timeout = setTimeout(() => {
-      searchFacilities(search)
+      setLoading(true);
+      searchFacilities(query)
         .then((data) => {
           if (isActive) {
             setFacilities(data);
@@ -31,7 +41,9 @@ export default function FacilitySearchScreen({ onSelectFacility }) {
         })
         .catch((err) => {
           if (isActive) {
-            setError(err.message);
+            const cachedFacilities = getCachedFacilities(query);
+            setFacilities(cachedFacilities);
+            setError(cachedFacilities.length ? "Showing saved parking data while the server is unreachable." : err.message);
           }
         })
         .finally(() => {
@@ -57,29 +69,65 @@ export default function FacilitySearchScreen({ onSelectFacility }) {
         <TextInput
           value={search}
           onChangeText={setSearch}
-          placeholder="Search parking facility"
+          placeholder="Search for parking"
+          placeholderTextColor="#7a8790"
           style={styles.input}
           autoCapitalize="none"
         />
+        {search ? (
+          <Pressable
+            onPress={() => {
+              setSearch("");
+              setFacilities([]);
+              setError("");
+            }}
+            hitSlop={10}
+          >
+            <Ionicons name="close-circle" size={21} color="#596579" />
+          </Pressable>
+        ) : null}
       </View>
 
-      {loading ? <ActivityIndicator style={styles.loader} /> : null}
-      {error ? <Text style={styles.error}>Unable to load facilities.</Text> : null}
+      {loading ? (
+        <View style={styles.refreshRow}>
+          <ActivityIndicator size="small" />
+          <Text style={styles.refreshText}>Updating availability...</Text>
+        </View>
+      ) : null}
+      {error ? (
+        <View style={styles.errorBox}>
+          <Ionicons name="cloud-offline-outline" size={17} color="#b42318" />
+          <Text style={styles.error}>{error}</Text>
+        </View>
+      ) : null}
 
       <FlatList
         data={facilities}
         keyExtractor={(item) => String(item.id)}
         contentContainerStyle={styles.list}
         ListEmptyComponent={
-          !loading ? <Text style={styles.empty}>No matching facilities found.</Text> : null
+          search.trim() && !loading ? (
+            <View style={styles.emptyState}>
+              <Ionicons name="search-outline" size={28} color="#078528" />
+              <Text style={styles.emptyTitle}>No parking facility found</Text>
+              <Text style={styles.emptyText}>Try searching for Montero Parking Lot.</Text>
+            </View>
+          ) : null
         }
         renderItem={({ item }) => (
-          <Pressable style={styles.card} onPress={() => onSelectFacility(item.id)}>
-            <View style={styles.cardHeader}>
-              <Text style={styles.name}>{item.name}</Text>
-              <Text style={styles.code}>{item.facility_code}</Text>
+          <Pressable style={styles.card} onPress={() => onSelectFacility(item.id)} android_ripple={{ color: "#e8f5eb" }}>
+            <View style={styles.cardTop}>
+              <View style={styles.parkingIcon}>
+                <Text style={styles.parkingIconText}>P</Text>
+              </View>
+              <View style={styles.cardCopy}>
+                <View style={styles.cardHeader}>
+                  <Text style={styles.name}>{item.name}</Text>
+                </View>
+                <Text style={styles.address}>{item.address}</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={21} color="#172033" />
             </View>
-            <Text style={styles.address}>{item.address}</Text>
             <View style={styles.row}>
               <Text style={styles.metric}>{item.available_slots} available</Text>
               <Text style={styles.metric}>{item.occupied_slots} occupied</Text>
@@ -95,7 +143,8 @@ export default function FacilitySearchScreen({ onSelectFacility }) {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    padding: 20
+    padding: 20,
+    backgroundColor: "#f6f8fb"
   },
   title: {
     marginTop: 18,
@@ -110,38 +159,86 @@ const styles = StyleSheet.create({
   },
   searchBox: {
     marginTop: 20,
+    height: 50,
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    gap: 10,
     borderWidth: 1,
     borderColor: "#ccd6e3",
     backgroundColor: "#ffffff",
-    borderRadius: 8,
-    paddingHorizontal: 12
+    borderRadius: 14,
+    paddingHorizontal: 14
   },
   input: {
     flex: 1,
-    height: 46,
-    fontSize: 16,
+    fontSize: 15,
     color: "#172033"
   },
   loader: {
     marginTop: 16
   },
-  error: {
+  refreshRow: {
     marginTop: 12,
-    color: "#b42318"
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8
+  },
+  refreshText: {
+    color: "#596579",
+    fontWeight: "700"
+  },
+  errorBox: {
+    marginTop: 12,
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 8,
+    borderRadius: 8,
+    padding: 10,
+    backgroundColor: "#fff0ee"
+  },
+  error: {
+    flex: 1,
+    color: "#b42318",
+    fontSize: 12,
+    fontWeight: "800",
+    lineHeight: 17
   },
   list: {
     paddingVertical: 16,
-    gap: 12
+    gap: 12,
+    flexGrow: 1
   },
   card: {
-    borderRadius: 8,
+    borderRadius: 14,
     backgroundColor: "#ffffff",
     borderWidth: 1,
     borderColor: "#d9e2ec",
-    padding: 16
+    padding: 14,
+    shadowColor: "#172033",
+    shadowOpacity: 0.08,
+    shadowRadius: 14,
+    elevation: 3
+  },
+  cardTop: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12
+  },
+  parkingIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#078528"
+  },
+  parkingIconText: {
+    color: "#ffffff",
+    fontSize: 22,
+    fontWeight: "900"
+  },
+  cardCopy: {
+    flex: 1
   },
   cardHeader: {
     flexDirection: "row",
@@ -154,13 +251,11 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     color: "#172033"
   },
-  code: {
-    color: "#276749",
-    fontWeight: "800"
-  },
   address: {
     marginTop: 6,
-    color: "#596579"
+    color: "#596579",
+    fontSize: 13,
+    fontWeight: "700"
   },
   row: {
     marginTop: 14,
@@ -169,12 +264,34 @@ const styles = StyleSheet.create({
     gap: 10
   },
   metric: {
+    overflow: "hidden",
+    borderRadius: 8,
+    paddingHorizontal: 9,
+    paddingVertical: 6,
     color: "#172033",
-    fontWeight: "700"
+    backgroundColor: "#f1f5f3",
+    fontSize: 12,
+    fontWeight: "800"
   },
-  empty: {
-    marginTop: 24,
+  emptyState: {
+    flex: 1,
+    minHeight: 220,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 24
+  },
+  emptyTitle: {
+    marginTop: 10,
+    color: "#172033",
+    fontSize: 16,
+    fontWeight: "900",
+    textAlign: "center"
+  },
+  emptyText: {
+    marginTop: 5,
     textAlign: "center",
-    color: "#596579"
+    color: "#596579",
+    fontWeight: "700",
+    lineHeight: 20
   }
 });

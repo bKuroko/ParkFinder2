@@ -169,14 +169,38 @@ def seed() -> None:
                         camera_id=camera.id,
                         level="info",
                         message="Seed data loaded for Montero Parking Lot",
-                        details={"source": "seed"},
+                        details={"event_type": "system", "source": "seed"},
                     ),
                     models.MonitoringLog(
                         facility_id=facility.id,
                         camera_id=camera.id,
                         level="info",
                         message="Montero CCTV stream is online",
-                        details={"camera": "Montero CCTV"},
+                        details={"event_type": "camera_status", "camera": "Montero CCTV"},
+                    ),
+                    models.MonitoringLog(
+                        facility_id=facility.id,
+                        camera_id=camera.id,
+                        level="info",
+                        message="Slot A2 changed to occupied",
+                        details={
+                            "event_type": "vehicle_entry",
+                            "slot_number": "A2",
+                            "status": "occupied",
+                            "confidence": 0.92,
+                        },
+                    ),
+                    models.MonitoringLog(
+                        facility_id=facility.id,
+                        camera_id=camera.id,
+                        level="info",
+                        message="Slot B2 changed to available",
+                        details={
+                            "event_type": "vehicle_exit",
+                            "slot_number": "B2",
+                            "status": "available",
+                            "confidence": 0.0,
+                        },
                     ),
                 ]
             )

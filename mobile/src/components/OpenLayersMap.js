@@ -52,67 +52,64 @@ function buildMapHtml(facilities, selectedFacilityId, zoom) {
         display: none;
       }
       .parking-marker {
-        min-width: 148px;
+        min-width: 132px;
         display: flex;
         flex-direction: column;
         align-items: center;
-        gap: 6px;
+        gap: 5px;
         border: 0;
         padding: 0;
         background: transparent;
         cursor: pointer;
         user-select: none;
       }
-      .parking-pill {
-        display: inline-flex;
-        align-items: center;
-        gap: 7px;
-        border: 2px solid #ffffff;
-        border-radius: 999px;
-        padding: 7px 10px;
-        color: #ffffff;
-        background: #078528;
-        box-shadow: 0 7px 18px rgba(0, 0, 0, 0.24);
-        font-size: 13px;
+      .parking-label {
+        max-width: 168px;
+        display: grid;
+        gap: 2px;
+        border: 1px solid rgba(7, 133, 40, 0.22);
+        border-radius: 8px;
+        padding: 8px 10px;
+        color: #172033;
+        background: #ffffff;
+        box-shadow: 0 8px 22px rgba(0, 0, 0, 0.2);
+        text-align: center;
+      }
+      .parking-label strong {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-size: 12px;
+      }
+      .parking-label small {
+        color: #078528;
+        font-size: 11px;
         font-weight: 800;
       }
-      .parking-dot {
-        width: 36px;
-        height: 36px;
+      .parking-pin {
+        width: 42px;
+        height: 42px;
         border-radius: 50%;
         display: grid;
         place-items: center;
         color: #ffffff;
         background: #078528;
         border: 3px solid #ffffff;
-        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.24);
+        box-shadow: 0 5px 16px rgba(0, 0, 0, 0.25);
         font-size: 20px;
         font-weight: 900;
       }
       .parking-tip {
         width: 0;
         height: 0;
-        margin-top: -3px;
+        margin-top: -4px;
         border-left: 8px solid transparent;
         border-right: 8px solid transparent;
         border-top: 11px solid #078528;
         filter: drop-shadow(0 3px 3px rgba(0, 0, 0, 0.2));
       }
-      .parking-marker.selected .parking-pill,
-      .parking-marker.selected .parking-dot {
-        background: #f97316;
-      }
-      .parking-marker.selected .parking-tip {
-        border-top-color: #f97316;
-      }
-      .parking-available {
-        border-radius: 999px;
-        padding: 4px 8px;
-        color: #078528;
-        background: #ffffff;
-        box-shadow: 0 5px 14px rgba(0, 0, 0, 0.16);
-        font-size: 12px;
-        font-weight: 800;
+      .parking-marker.selected .parking-label {
+        border-color: rgba(7, 133, 40, 0.45);
       }
     </style>
   </head>
@@ -148,11 +145,26 @@ function buildMapHtml(facilities, selectedFacilityId, zoom) {
         const marker = document.createElement("button");
         marker.type = "button";
         marker.className = "parking-marker" + (selected ? " selected" : "");
-        marker.innerHTML =
-          '<span class="parking-pill"><span>P</span><span>Parking Facility</span></span>' +
-          '<span class="parking-available">' + facility.available_slots + ' / ' + facility.total_slots + ' available</span>' +
-          '<span class="parking-dot">P</span>' +
-          '<span class="parking-tip"></span>';
+
+        const label = document.createElement("span");
+        label.className = "parking-label";
+        const name = document.createElement("strong");
+        name.textContent = facility.name || "Parking Facility";
+        const availability = document.createElement("small");
+        availability.textContent = facility.available_slots + " / " + facility.total_slots + " available";
+        label.appendChild(name);
+        label.appendChild(availability);
+
+        const pin = document.createElement("span");
+        pin.className = "parking-pin";
+        pin.textContent = "P";
+
+        const tip = document.createElement("span");
+        tip.className = "parking-tip";
+
+        marker.appendChild(label);
+        marker.appendChild(pin);
+        marker.appendChild(tip);
         marker.addEventListener("click", function(event) {
           event.preventDefault();
           event.stopPropagation();
@@ -245,8 +257,9 @@ const styles = StyleSheet.create({
     backgroundColor: "#eef1ed"
   },
   compact: {
-    height: 440,
-    borderRadius: 0,
+    height: 285,
+    marginTop: 14,
+    borderRadius: 8,
     borderWidth: 0
   },
   fullScreen: {

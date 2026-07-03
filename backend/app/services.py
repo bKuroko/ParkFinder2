@@ -22,6 +22,12 @@ def calculate_facility_counts(db: Session, facility_id: int) -> tuple[int, int, 
     return total, available, occupied, percentage
 
 
+def latest_facility_update(db: Session, facility_id: int) -> datetime | None:
+    return db.scalar(
+        select(func.max(models.ParkingSlot.last_seen_at)).where(models.ParkingSlot.facility_id == facility_id)
+    )
+
+
 def facility_to_summary(db: Session, facility: models.Facility) -> FacilitySummary:
     total, available, occupied, percentage = calculate_facility_counts(db, facility.id)
     return FacilitySummary(
@@ -35,6 +41,7 @@ def facility_to_summary(db: Session, facility: models.Facility) -> FacilitySumma
         available_slots=available,
         occupied_slots=occupied,
         occupancy_percentage=percentage,
+        updated_at=latest_facility_update(db, facility.id),
     )
 
 

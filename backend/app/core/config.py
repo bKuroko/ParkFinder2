@@ -10,7 +10,7 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 720
     create_tables_on_start: bool = True
     ai_ingest_api_key: str = "dev-ai-ingest-key"
-    backend_cors_origins: str = "http://localhost:5173,http://localhost:8081,http://localhost:19006"
+    backend_cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173,http://localhost:8081,http://localhost:19006"
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 

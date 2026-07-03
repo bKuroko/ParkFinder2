@@ -1,4 +1,5 @@
 const API_URL = process.env.EXPO_PUBLIC_API_URL || "http://10.0.2.2:8000/api/v1";
+const REQUEST_TIMEOUT_MS = 3000;
 
 const FALLBACK_FACILITY = {
   id: 1,
@@ -10,7 +11,8 @@ const FALLBACK_FACILITY = {
   total_slots: 12,
   available_slots: 5,
   occupied_slots: 7,
-  occupancy_percentage: 58.33
+  occupancy_percentage: 58.33,
+  updated_at: null
 };
 
 function rectangle(x, y, width, height) {
@@ -32,7 +34,7 @@ function fallbackSlots() {
   }));
 }
 
-function fallbackFacilities(search = "") {
+export function getCachedFacilities(search = "") {
   if (!search.trim()) {
     return [FALLBACK_FACILITY];
   }
@@ -41,22 +43,8 @@ function fallbackFacilities(search = "") {
     : [];
 }
 
-async function request(path) {
-  const response = await fetch(`${API_URL}${path}`);
-  if (!response.ok) {
-    const message = await response.text();
-    throw new Error(message || "Request failed");
-  }
-  return response.json();
-}
-
-export function searchFacilities(search) {
-  const params = search ? `?search=${encodeURIComponent(search)}` : "";
-  return request(`/facilities${params}`).catch(() => fallbackFacilities(search));
-}
-
-export function getFacility(facilityId) {
-  return request(`/facilities/${facilityId}`).catch(() => ({
+export function getCachedFacility() {
+  return {
     ...FALLBACK_FACILITY,
     slots: fallbackSlots(),
     cameras: [
@@ -68,5 +56,49 @@ export function getFacility(facilityId) {
         last_heartbeat_at: new Date().toISOString()
       }
     ]
-  }));
+  };
+}
+
+async function request(path, timeoutMs = REQUEST_TIMEOUT_MS) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch(`${API_URL}${path}`, {
+      signal: controller.signal
+    });
+    if (!response.ok) {
+      const message = await response.text();
+      const apiError = new Error(message || `Request failed with status ${response.status}`);
+      apiError.isHttpError = true;
+      throw apiError;
+    }
+    return response.json();
+  } catch (error) {
+    if (error.isHttpError) {
+      throw error;
+    }
+    if (error.name === "AbortError") {
+      throw new Error(`Cannot reach ParkFinder server at ${API_URL}. Check that the backend is running.`);
+    }
+    if (error.message?.startsWith("Cannot reach ParkFinder server")) {
+      throw error;
+    }
+    throw new Error(`Cannot reach ParkFinder server at ${API_URL}. Check that the backend is running.`);
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+export function searchFacilities(search) {
+  const params = search ? `?search=${encodeURIComponent(search)}` : "";
+  return request(`/facilities${params}`);
+}
+
+export function getFacility(facilityId) {
+  return request(`/facilities/${facilityId}`);
+}
+
+export function getFacilityAvailability(facilityId) {
+  return request(`/facilities/${facilityId}/availability`);
 }

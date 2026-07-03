@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { CarFront } from "lucide-react";
+import { CarFront, LockKeyhole, ShieldCheck } from "lucide-react";
 
 import { login } from "../api/client";
 
@@ -25,30 +25,46 @@ export default function LoginPage({ onLogin }) {
 
   return (
     <main className="login-shell">
-      <form className="login-panel" onSubmit={handleSubmit}>
-        <div className="brand-row">
+      <section className="login-card">
+        <div className="login-aside">
           <span className="brand-icon">
-            <CarFront size={26} />
+            <CarFront size={28} />
           </span>
           <div>
+            <p className="eyebrow">
+              <ShieldCheck size={15} />
+              Secure admin access
+            </p>
             <h1>ParkFinder Admin</h1>
-            <p>Facility monitoring dashboard</p>
+            <p>Monitor facility occupancy, camera status, reports, and AI parking updates from one focused dashboard.</p>
           </div>
         </div>
 
-        <label>
-          Admin Email
-          <input value={email} onChange={(event) => setEmail(event.target.value)} type="email" />
-        </label>
-        <label>
-          Password
-          <input value={password} onChange={(event) => setPassword(event.target.value)} type="password" />
-        </label>
-        {error ? <p className="error-text">{error}</p> : null}
-        <button type="submit" disabled={loading}>
-          {loading ? "Signing in..." : "Sign In"}
-        </button>
-      </form>
+        <form className="login-panel" onSubmit={handleSubmit}>
+          <div className="login-heading">
+            <span>
+              <LockKeyhole size={18} />
+            </span>
+            <div>
+              <h2>Sign in</h2>
+              <p>Use your assigned facility admin account.</p>
+            </div>
+          </div>
+
+          <label>
+            Admin Email
+            <input value={email} onChange={(event) => setEmail(event.target.value)} type="email" />
+          </label>
+          <label>
+            Password
+            <input value={password} onChange={(event) => setPassword(event.target.value)} type="password" />
+          </label>
+          {error ? <p className="error-text">{error}</p> : null}
+          <button type="submit" disabled={loading}>
+            {loading ? "Signing in..." : "Sign In"}
+          </button>
+        </form>
+      </section>
     </main>
   );
 }

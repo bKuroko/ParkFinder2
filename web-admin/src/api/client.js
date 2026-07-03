@@ -15,18 +15,27 @@ export function removeToken() {
 
 async function request(path, options = {}) {
   const token = getToken();
-  const response = await fetch(`${API_URL}${path}`, {
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...options.headers
-    }
-  });
+  let response;
+  try {
+    response = await fetch(`${API_URL}${path}`, {
+      ...options,
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...options.headers
+      }
+    });
+  } catch (error) {
+    const apiError = new Error(`Cannot reach ParkFinder API at ${API_URL}. Check that the backend is running.`);
+    apiError.cause = error;
+    throw apiError;
+  }
 
   if (!response.ok) {
     const message = await response.text();
-    throw new Error(message || "Request failed");
+    const error = new Error(message || `Request failed with status ${response.status}`);
+    error.status = response.status;
+    throw error;
   }
 
   return response.json();
@@ -47,4 +56,16 @@ export function getDashboard() {
 
 export function getReports() {
   return request("/admin/reports");
+}
+
+export function getAdminLogs() {
+  return request("/admin/logs");
+}
+
+export function getCurrentAdmin() {
+  return request("/auth/me");
+}
+
+export function getFacility(facilityId) {
+  return request(`/facilities/${facilityId}`);
 }

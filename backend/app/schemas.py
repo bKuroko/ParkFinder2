@@ -54,6 +54,7 @@ class FacilitySummary(BaseModel):
     available_slots: int
     occupied_slots: int
     occupancy_percentage: float
+    updated_at: datetime | None = None
 
 
 class FacilityAvailability(BaseModel):

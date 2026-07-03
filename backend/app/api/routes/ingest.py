@@ -42,6 +42,7 @@ def ingest_slot_status(
         slot = slots_by_number.get(detected_slot.slot_number)
         if not slot:
             continue
+        previous_status = slot.is_occupied
         slot.is_occupied = detected_slot.is_occupied
         slot.confidence = detected_slot.confidence
         slot.last_seen_at = now
@@ -52,6 +53,23 @@ def ingest_slot_status(
                 timestamp=now,
             )
         )
+        if previous_status != detected_slot.is_occupied:
+            event_type = "vehicle_entry" if detected_slot.is_occupied else "vehicle_exit"
+            status_label = "occupied" if detected_slot.is_occupied else "available"
+            db.add(
+                models.MonitoringLog(
+                    facility_id=payload.facility_id,
+                    camera_id=payload.camera_id,
+                    level="info",
+                    message=f"Slot {slot.slot_number} changed to {status_label}",
+                    details={
+                        "event_type": event_type,
+                        "slot_number": slot.slot_number,
+                        "status": status_label,
+                        "confidence": detected_slot.confidence,
+                    },
+                )
+            )
         updated += 1
 
     db.flush()
@@ -63,7 +81,11 @@ def ingest_slot_status(
             camera_id=payload.camera_id,
             level="info",
             message=f"AI processor updated {updated} slots",
-            details={"updated_slots": updated, "camera_status": payload.camera_status},
+            details={
+                "event_type": "ai_update",
+                "updated_slots": updated,
+                "camera_status": payload.camera_status,
+            },
         )
     )
     db.commit()

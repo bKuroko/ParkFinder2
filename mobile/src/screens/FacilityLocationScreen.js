@@ -1,39 +1,92 @@
 import { useEffect, useState } from "react";
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
-import { getFacility } from "../api/client";
+import { getCachedFacility, getFacility } from "../api/client";
 import OpenLayersMap from "../components/OpenLayersMap";
 
+const LIVE_REFRESH_MS = 5000;
+
+function formatUpdatedAt(value) {
+  if (!value) {
+    return "No AI updates yet";
+  }
+  return new Date(value).toLocaleString([], {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit"
+  });
+}
+
+function OfflineNotice({ message }) {
+  if (!message) {
+    return null;
+  }
+  return (
+    <View style={styles.offlineNotice}>
+      <Ionicons name="cloud-offline-outline" size={18} color="#b42318" />
+      <Text style={styles.offlineText}>{message}</Text>
+    </View>
+  );
+}
+
+function MapSkeleton() {
+  return (
+    <View style={styles.centered}>
+      <View style={styles.skeletonMap} />
+      <View style={styles.skeletonSheet} />
+    </View>
+  );
+}
+
 export default function FacilityLocationScreen({ facilityId, onBack }) {
-  const [facility, setFacility] = useState(null);
-  const [mapRevision, setMapRevision] = useState(0);
+  const [facility, setFacility] = useState(getCachedFacility());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    setLoading(true);
-    getFacility(facilityId)
-      .then((data) => {
-        setFacility(data);
-        setError("");
-      })
-      .catch((err) => setError(err.message))
-      .finally(() => setLoading(false));
+    let isActive = true;
+    setFacility(getCachedFacility());
+
+    async function refreshFacility(showStatus = false) {
+      if (showStatus) {
+        setLoading(true);
+      }
+      try {
+        const data = await getFacility(facilityId);
+        if (isActive) {
+          setFacility(data);
+          setError("");
+        }
+      } catch (err) {
+        if (isActive) {
+          setError(err.message);
+        }
+      } finally {
+        if (isActive && showStatus) {
+          setLoading(false);
+        }
+      }
+    }
+
+    refreshFacility(true);
+    const interval = setInterval(() => refreshFacility(false), LIVE_REFRESH_MS);
+
+    return () => {
+      isActive = false;
+      clearInterval(interval);
+    };
   }, [facilityId]);
 
-  if (loading) {
-    return (
-      <View style={styles.centered}>
-        <ActivityIndicator />
-      </View>
-    );
+  if (!facility && loading) {
+    return <MapSkeleton />;
   }
 
-  if (error || !facility) {
+  if (!facility) {
     return (
       <View style={styles.centered}>
-        <Text style={styles.error}>Unable to load map.</Text>
+        <OfflineNotice message={error || "Cannot reach ParkFinder server."} />
         <Pressable style={styles.smallButton} onPress={onBack}>
           <Text style={styles.smallButtonText}>Back</Text>
         </Pressable>
@@ -47,7 +100,6 @@ export default function FacilityLocationScreen({ facilityId, onBack }) {
         facilities={[facility]}
         selectedFacilityId={facility.id}
         fullScreen
-        mapRevision={mapRevision}
       />
 
       <View style={styles.topbar}>
@@ -69,12 +121,20 @@ export default function FacilityLocationScreen({ facilityId, onBack }) {
           <View style={styles.copy}>
             <Text style={styles.name}>{facility.name}</Text>
             <Text style={styles.address}>{facility.address}</Text>
-            <Text style={styles.badge}>Open 24 Hours</Text>
-            <Text style={styles.coordinates}>
-              Marker at {facility.latitude}, {facility.longitude}
-            </Text>
+            <View style={styles.badgeRow}>
+              <Text style={styles.badge}>Open 24 Hours</Text>
+            </View>
+            <View style={styles.liveRow}>
+              <View style={styles.liveDot} />
+              <Text style={styles.liveText}>
+                {loading ? "Refreshing..." : `Last updated ${formatUpdatedAt(facility.updated_at)}`}
+              </Text>
+            </View>
           </View>
         </View>
+
+        <OfflineNotice message={error} />
+
         <View style={styles.metrics}>
           <View>
             <Text style={styles.metricValue}>
@@ -88,10 +148,6 @@ export default function FacilityLocationScreen({ facilityId, onBack }) {
             <Text style={styles.metricLabel}>Occupied</Text>
           </View>
         </View>
-        <Pressable style={styles.recenterButton} onPress={() => setMapRevision((value) => value + 1)}>
-          <Ionicons name="locate-outline" size={20} color="#ffffff" />
-          <Text style={styles.recenterText}>Re-center Parking Marker</Text>
-        </Pressable>
       </View>
     </View>
   );
@@ -105,7 +161,26 @@ const styles = StyleSheet.create({
   centered: {
     flex: 1,
     alignItems: "center",
-    justifyContent: "center"
+    justifyContent: "center",
+    padding: 20,
+    backgroundColor: "#eef1ed"
+  },
+  skeletonMap: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "#e5ece7"
+  },
+  skeletonSheet: {
+    position: "absolute",
+    left: 14,
+    right: 14,
+    bottom: 18,
+    height: 260,
+    borderRadius: 14,
+    backgroundColor: "#ffffff"
   },
   topbar: {
     position: "absolute",
@@ -153,11 +228,15 @@ const styles = StyleSheet.create({
     left: 14,
     right: 14,
     bottom: 18,
-    borderRadius: 8,
+    borderRadius: 14,
     backgroundColor: "#ffffff",
-    padding: 16,
+    padding: 14,
     borderWidth: 1,
-    borderColor: "#e0e7ef"
+    borderColor: "#e0e7ef",
+    shadowColor: "#172033",
+    shadowOpacity: 0.12,
+    shadowRadius: 18,
+    elevation: 7
   },
   handle: {
     alignSelf: "center",
@@ -165,7 +244,7 @@ const styles = StyleSheet.create({
     height: 5,
     borderRadius: 3,
     backgroundColor: "#d8dee8",
-    marginBottom: 16
+    marginBottom: 14
   },
   sheetContent: {
     flexDirection: "row",
@@ -177,7 +256,7 @@ const styles = StyleSheet.create({
     borderRadius: 21,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#f97316"
+    backgroundColor: "#078528"
   },
   iconText: {
     color: "#ffffff",
@@ -194,27 +273,47 @@ const styles = StyleSheet.create({
   },
   address: {
     marginTop: 4,
-    color: "#596579"
+    color: "#596579",
+    fontSize: 13,
+    fontWeight: "700"
+  },
+  badgeRow: {
+    marginTop: 9,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    flexWrap: "wrap"
   },
   badge: {
     alignSelf: "flex-start",
-    marginTop: 10,
     paddingVertical: 4,
     paddingHorizontal: 8,
-    borderRadius: 6,
+    borderRadius: 8,
     overflow: "hidden",
     color: "#0b6b2c",
     backgroundColor: "#d8f5df",
-    fontWeight: "800"
+    fontSize: 12,
+    fontWeight: "900"
   },
-  coordinates: {
+  liveRow: {
     marginTop: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6
+  },
+  liveDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "#078528"
+  },
+  liveText: {
     color: "#596579",
     fontSize: 12,
-    fontWeight: "700"
+    fontWeight: "800"
   },
   metrics: {
-    marginTop: 24,
+    marginTop: 18,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between"
@@ -247,22 +346,21 @@ const styles = StyleSheet.create({
     color: "#172033",
     fontWeight: "900"
   },
-  recenterButton: {
-    marginTop: 16,
-    minHeight: 48,
-    borderRadius: 8,
-    backgroundColor: "#078528",
+  offlineNotice: {
+    marginTop: 12,
     flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8
+    alignItems: "flex-start",
+    gap: 8,
+    borderRadius: 8,
+    padding: 10,
+    backgroundColor: "#fff0ee"
   },
-  recenterText: {
-    color: "#ffffff",
-    fontWeight: "900"
-  },
-  error: {
-    color: "#b42318"
+  offlineText: {
+    flex: 1,
+    color: "#b42318",
+    fontSize: 12,
+    fontWeight: "800",
+    lineHeight: 17
   },
   smallButton: {
     marginTop: 12,
