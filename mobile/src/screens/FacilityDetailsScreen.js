@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import {
+  ActivityIndicator,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -37,13 +38,13 @@ function OfflineNotice({ message }) {
 }
 
 export default function FacilityDetailsScreen({ facilityId, onBack, onViewMap }) {
-  const [facility, setFacility] = useState(getCachedFacility());
-  const [loading, setLoading] = useState(false);
+  const [facility, setFacility] = useState(() => getCachedFacility(facilityId));
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
     let isActive = true;
-    setFacility(getCachedFacility());
+    setFacility(getCachedFacility(facilityId));
 
     async function refreshFacility(showStatus = false) {
       if (showStatus) {
@@ -57,7 +58,11 @@ export default function FacilityDetailsScreen({ facilityId, onBack, onViewMap })
         }
       } catch (err) {
         if (isActive) {
-          setError(err.message);
+          setError(
+            getCachedFacility(facilityId)
+              ? "Live updates are unavailable. Showing the last known parking information."
+              : err.message
+          );
         }
       } finally {
         if (isActive && showStatus) {
@@ -75,10 +80,19 @@ export default function FacilityDetailsScreen({ facilityId, onBack, onViewMap })
     };
   }, [facilityId]);
 
+  if (!facility && loading) {
+    return (
+      <View style={styles.centered}>
+        <ActivityIndicator size="large" color="#078528" />
+        <Text style={styles.loadingText}>Loading parking availability...</Text>
+      </View>
+    );
+  }
+
   if (!facility) {
     return (
       <View style={styles.centered}>
-        <OfflineNotice message={error || "Cannot reach ParkFinder server."} />
+        <OfflineNotice message={error || "Live parking information is unavailable right now."} />
         <Pressable style={styles.backButton} onPress={onBack}>
           <Text style={styles.backText}>Back</Text>
         </Pressable>
@@ -127,9 +141,11 @@ export default function FacilityDetailsScreen({ facilityId, onBack, onViewMap })
         </View>
 
         <View style={styles.liveStatus}>
-          <View style={styles.liveDot} />
+          <View style={[styles.liveDot, error ? styles.staleDot : null]} />
           <Text style={styles.liveText}>
-            {loading ? "Refreshing live availability..." : `Last updated ${formatUpdatedAt(facility.updated_at)}`}
+            {loading
+              ? "Refreshing live availability..."
+              : `${error ? "Last known update" : "Last updated"} ${formatUpdatedAt(facility.updated_at)}`}
           </Text>
         </View>
 
@@ -185,6 +201,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     padding: 20,
     backgroundColor: "#ffffff"
+  },
+  loadingText: {
+    marginTop: 12,
+    color: "#596579",
+    fontSize: 14,
+    fontWeight: "800"
   },
   heroImage: {
     height: 260,
@@ -332,6 +354,9 @@ const styles = StyleSheet.create({
     height: 8,
     borderRadius: 4,
     backgroundColor: "#078528"
+  },
+  staleDot: {
+    backgroundColor: "#7a8790"
   },
   liveText: {
     flex: 1,

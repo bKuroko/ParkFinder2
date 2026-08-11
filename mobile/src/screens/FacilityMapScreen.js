@@ -89,8 +89,13 @@ export default function FacilityMapScreen({ onSelectFacility }) {
         })
         .catch((err) => {
           if (isActive) {
-            setFacilities(getCachedFacilities(query).slice(0, 1));
-            setError(err.message);
+            const cached = getCachedFacilities(query).slice(0, 1);
+            setFacilities(cached);
+            setError(
+              cached.length
+                ? "Live updates are unavailable. Showing the last known parking information."
+                : err.message
+            );
           }
         })
         .finally(() => {
@@ -125,7 +130,7 @@ export default function FacilityMapScreen({ onSelectFacility }) {
         }
       } catch (err) {
         if (isActive) {
-          setError(err.message);
+          setError("Live updates are unavailable. Showing the last known parking information.");
         }
       } finally {
         if (isActive && showStatus) {
@@ -215,7 +220,9 @@ export default function FacilityMapScreen({ onSelectFacility }) {
           <View style={styles.handle} />
           <View style={styles.resultHeader}>
             <Text style={styles.sheetTitle}>Parking Facility</Text>
-            <Text style={styles.liveText}>{loading ? "Updating..." : "Live data"}</Text>
+            <Text style={[styles.liveText, error ? styles.staleText : null]}>
+              {loading ? "Updating..." : error ? "Last known" : "Live data"}
+            </Text>
           </View>
 
           <OfflineNotice message={error} />
@@ -270,9 +277,11 @@ export default function FacilityMapScreen({ onSelectFacility }) {
           </View>
 
           <View style={styles.updateRow}>
-            <View style={styles.liveDot} />
+            <View style={[styles.liveDot, error ? styles.staleDot : null]} />
             <Text style={styles.updatedText}>
-              {refreshing ? "Refreshing live availability..." : `Last updated ${formatUpdatedAt(selectedFacility.updated_at)}`}
+              {refreshing
+                ? "Refreshing live availability..."
+                : `${error ? "Last known update" : "Last updated"} ${formatUpdatedAt(selectedFacility.updated_at)}`}
             </Text>
           </View>
 
@@ -388,6 +397,9 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "900"
   },
+  staleText: {
+    color: "#7a8790"
+  },
   resultRow: {
     marginTop: 6,
     flexDirection: "row",
@@ -490,6 +502,9 @@ const styles = StyleSheet.create({
     height: 8,
     borderRadius: 4,
     backgroundColor: "#078528"
+  },
+  staleDot: {
+    backgroundColor: "#7a8790"
   },
   updatedText: {
     flex: 1,

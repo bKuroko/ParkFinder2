@@ -41,13 +41,13 @@ function MapSkeleton() {
 }
 
 export default function FacilityLocationScreen({ facilityId, onBack }) {
-  const [facility, setFacility] = useState(getCachedFacility());
+  const [facility, setFacility] = useState(() => getCachedFacility(facilityId));
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
     let isActive = true;
-    setFacility(getCachedFacility());
+    setFacility(getCachedFacility(facilityId));
 
     async function refreshFacility(showStatus = false) {
       if (showStatus) {
@@ -61,7 +61,11 @@ export default function FacilityLocationScreen({ facilityId, onBack }) {
         }
       } catch (err) {
         if (isActive) {
-          setError(err.message);
+          setError(
+            getCachedFacility(facilityId)
+              ? "Live updates are unavailable. Showing the last known parking information."
+              : err.message
+          );
         }
       } finally {
         if (isActive && showStatus) {
@@ -86,7 +90,7 @@ export default function FacilityLocationScreen({ facilityId, onBack }) {
   if (!facility) {
     return (
       <View style={styles.centered}>
-        <OfflineNotice message={error || "Cannot reach ParkFinder server."} />
+        <OfflineNotice message={error || "Live parking information is unavailable right now."} />
         <Pressable style={styles.smallButton} onPress={onBack}>
           <Text style={styles.smallButtonText}>Back</Text>
         </Pressable>
@@ -125,9 +129,11 @@ export default function FacilityLocationScreen({ facilityId, onBack }) {
               <Text style={styles.badge}>Open 24 Hours</Text>
             </View>
             <View style={styles.liveRow}>
-              <View style={styles.liveDot} />
+              <View style={[styles.liveDot, error ? styles.staleDot : null]} />
               <Text style={styles.liveText}>
-                {loading ? "Refreshing..." : `Last updated ${formatUpdatedAt(facility.updated_at)}`}
+                {loading
+                  ? "Refreshing..."
+                  : `${error ? "Last known update" : "Last updated"} ${formatUpdatedAt(facility.updated_at)}`}
               </Text>
             </View>
           </View>
@@ -306,6 +312,9 @@ const styles = StyleSheet.create({
     height: 8,
     borderRadius: 4,
     backgroundColor: "#078528"
+  },
+  staleDot: {
+    backgroundColor: "#7a8790"
   },
   liveText: {
     color: "#596579",
