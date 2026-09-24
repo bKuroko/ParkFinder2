@@ -37,19 +37,43 @@ Logs in an admin and returns a JWT access token.
 
 ### `GET /api/v1/auth/me`
 
-Returns the current admin profile.
+Returns the current admin profile, role, and super-admin status.
+
+### `GET /api/v1/admin/facilities`
+
+Returns all assigned facilities for a regular admin or every facility for a super admin. Multi-facility accounts may select any returned facility through the dashboard, logs, and reports endpoints.
 
 ### `GET /api/v1/admin/dashboard`
 
-Returns facility-restricted dashboard data for the logged-in admin.
+Returns dashboard data for the logged-in admin. Super admins pass `facility_id` to select a facility.
 
 ### `GET /api/v1/admin/logs`
 
-Returns monitoring logs for the admin's assigned facility.
+Returns monitoring logs for the assigned or selected facility.
 
 ### `GET /api/v1/admin/reports`
 
-Returns simple occupancy report metrics for the admin's assigned facility.
+Returns simple occupancy report metrics for the assigned or selected facility.
+
+### `GET /api/v1/admin/users`
+
+Returns administrator accounts and role information. This endpoint requires super-admin access.
+
+### `GET /api/v1/admin/parking-lot-submissions`
+
+Returns the logged-in facility owner's own requests. A super admin receives all owner requests.
+
+### `POST /api/v1/admin/parking-lot-submissions`
+
+Creates a pending parking lot request for a regular facility-owner account. The request contains its name, address, map coordinates, and initial slot count. Pending and rejected requests are not returned by the public facility API.
+
+### `POST /api/v1/admin/parking-lot-submissions/{submission_id}/approve`
+
+Super admin only. Creates the public facility, assigns it to the submitting owner, and marks the request approved.
+
+### `POST /api/v1/admin/parking-lot-submissions/{submission_id}/reject`
+
+Super admin only. Rejects the pending request without creating a public facility.
 
 ## AI Ingest Endpoint
 

@@ -50,16 +50,54 @@ export async function login(email, password) {
   return data;
 }
 
-export function getDashboard() {
-  return request("/admin/dashboard");
+function facilityPath(path, facilityId) {
+  if (facilityId === null || facilityId === undefined) {
+    return path;
+  }
+  return `${path}?facility_id=${encodeURIComponent(facilityId)}`;
 }
 
-export function getReports() {
-  return request("/admin/reports");
+export function getAdminFacilities() {
+  return request("/admin/facilities");
 }
 
-export function getAdminLogs() {
-  return request("/admin/logs");
+export function getAdminUsers() {
+  return request("/admin/users");
+}
+
+export function getParkingLotSubmissions() {
+  return request("/admin/parking-lot-submissions");
+}
+
+export function submitParkingLot(payload) {
+  return request("/admin/parking-lot-submissions", {
+    method: "POST",
+    body: JSON.stringify(payload)
+  });
+}
+
+export function approveParkingLotSubmission(submissionId) {
+  return request(`/admin/parking-lot-submissions/${submissionId}/approve`, {
+    method: "POST"
+  });
+}
+
+export function rejectParkingLotSubmission(submissionId) {
+  return request(`/admin/parking-lot-submissions/${submissionId}/reject`, {
+    method: "POST"
+  });
+}
+
+export function getDashboard(facilityId) {
+  return request(facilityPath("/admin/dashboard", facilityId));
+}
+
+export function getReports(facilityId) {
+  return request(facilityPath("/admin/reports", facilityId));
+}
+
+export function getAdminLogs(facilityId) {
+  return request(facilityPath("/admin/logs", facilityId));
 }
 
 export function getCurrentAdmin() {

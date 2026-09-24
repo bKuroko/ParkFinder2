@@ -47,7 +47,7 @@ export default function LoginPage({ onLogin }) {
             </span>
             <div>
               <h2>Sign in</h2>
-              <p>Use your assigned facility admin account.</p>
+              <p>Use your facility admin or super-admin account.</p>
             </div>
           </div>
 

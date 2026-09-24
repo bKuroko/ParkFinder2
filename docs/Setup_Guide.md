@@ -74,3 +74,17 @@ Seed admin:
 admin@parkfinder.local
 admin123
 ```
+
+Seed super admin (web dashboard only):
+
+```text
+superadmin@parkfinder.local
+superadmin123
+```
+
+Seed multi-facility admins (web dashboard only):
+
+```text
+cluster3@parkfinder.local / cluster3admin
+cluster5@parkfinder.local / cluster5admin
+```

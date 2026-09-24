@@ -1,13 +1,13 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Camera,
   CarFront,
   CheckCircle2,
-  ChevronDown,
   Download,
   FileText,
   Home,
   LogOut,
+  MapPin,
   ParkingCircle,
   PieChart,
   RefreshCw,
@@ -18,15 +18,20 @@ import {
 } from "lucide-react";
 
 import {
+  approveParkingLotSubmission,
+  getAdminFacilities,
   getAdminLogs,
+  getAdminUsers,
   getCurrentAdmin,
   getDashboard,
   getFacility,
+  getParkingLotSubmissions,
   getReports,
-  removeToken
+  rejectParkingLotSubmission,
+  removeToken,
+  submitParkingLot
 } from "../api/client";
 import MetricCard from "../components/MetricCard";
-import TrendChart from "../components/TrendChart";
 
 const VIEW_COPY = {
   dashboard: {
@@ -52,7 +57,19 @@ const VIEW_COPY = {
   users: {
     title: "Users",
     subtitle: "View admin access restricted to this facility."
+  },
+  "parking-lots": {
+    title: "Parking Lot Requests",
+    subtitle: "Facility owners can submit a lot and the super admin controls approval."
   }
+};
+
+const EMPTY_LOT_FORM = {
+  name: "",
+  address: "",
+  latitude: "",
+  longitude: "",
+  total_slots: ""
 };
 
 const EVENT_TYPE_OPTIONS = [
@@ -177,8 +194,15 @@ export default function DashboardPage({ onLogout }) {
   const [dashboard, setDashboard] = useState(null);
   const [reports, setReports] = useState(null);
   const [facilityDetail, setFacilityDetail] = useState(null);
+  const [facilities, setFacilities] = useState([]);
+  const [selectedFacilityId, setSelectedFacilityId] = useState(null);
   const [allLogs, setAllLogs] = useState([]);
+  const [adminUsers, setAdminUsers] = useState([]);
   const [adminProfile, setAdminProfile] = useState(null);
+  const [lotSubmissions, setLotSubmissions] = useState([]);
+  const [lotForm, setLotForm] = useState(EMPTY_LOT_FORM);
+  const [lotMessage, setLotMessage] = useState(null);
+  const [lotAction, setLotAction] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [activeView, setActiveView] = useState("dashboard");
@@ -187,28 +211,50 @@ export default function DashboardPage({ onLogout }) {
     eventType: "all",
     slot: "all"
   });
+  const selectedFacilityIdRef = useRef(null);
 
-  async function loadDashboard({ silent = false } = {}) {
+  async function loadDashboard({ silent = false, facilityId = selectedFacilityIdRef.current } = {}) {
     if (!silent) {
       setLoading(true);
     }
     setError("");
     try {
-      const [dashboardData, reportData, adminData] = await Promise.all([
-        getDashboard(),
-        getReports(),
-        getCurrentAdmin()
+      const [adminData, facilityOptions] = await Promise.all([
+        getCurrentAdmin(),
+        getAdminFacilities()
       ]);
-      const [facilityData, logData] = await Promise.all([
-        getFacility(dashboardData.facility.id),
-        getAdminLogs()
+
+      const isSuperAdmin = adminData.is_super_admin || adminData.role === "super_admin";
+      const requestedFacilityId = Number(facilityId);
+      const requestedFacilityIsVisible = facilityOptions.some(
+        (facilityOption) => facilityOption.id === requestedFacilityId
+      );
+      const targetFacilityId = requestedFacilityIsVisible
+        ? requestedFacilityId
+        : adminData.facility_id ?? facilityOptions[0]?.id;
+      if (!targetFacilityId) {
+        throw new Error("No parking facilities are available for this account.");
+      }
+
+      const [dashboardData, reportData, facilityData, logData, userData, submissionData] = await Promise.all([
+        getDashboard(targetFacilityId),
+        getReports(targetFacilityId),
+        getFacility(targetFacilityId),
+        getAdminLogs(targetFacilityId),
+        isSuperAdmin ? getAdminUsers() : Promise.resolve([adminData]),
+        getParkingLotSubmissions()
       ]);
 
       setDashboard(dashboardData);
       setReports(reportData);
       setFacilityDetail(facilityData);
+      setFacilities(facilityOptions);
+      selectedFacilityIdRef.current = targetFacilityId;
+      setSelectedFacilityId(targetFacilityId);
       setAllLogs(logData);
+      setAdminUsers(userData);
       setAdminProfile(adminData);
+      setLotSubmissions(submissionData);
     } catch (err) {
       if (err.status === 401 || err.status === 403) {
         removeToken();
@@ -258,6 +304,11 @@ export default function DashboardPage({ onLogout }) {
   }
 
   const facility = facilityDetail || dashboard.facility;
+  const isSuperAdmin = Boolean(
+    adminProfile?.is_super_admin || adminProfile?.role === "super_admin"
+  );
+  const canSwitchFacilities = facilities.length > 1;
+  const adminInitial = (adminProfile?.full_name || "Admin").trim().charAt(0).toUpperCase();
   const cameras = facilityDetail?.cameras || dashboard.cameras || [];
   const slots = [...(facilityDetail?.slots || [])].sort((a, b) =>
     a.slot_number.localeCompare(b.slot_number, undefined, { numeric: true })
@@ -290,6 +341,7 @@ export default function DashboardPage({ onLogout }) {
     [SlidersHorizontal, "Slot Overview", "slots"],
     [FileText, "Logs & Reports", "logs"],
     [Camera, "Camera Status", "cameras"],
+    [MapPin, "Parking Lots", "parking-lots"],
     [Settings, "Facility Settings", "settings"],
     [Users, "Users", "users"]
   ];
@@ -297,6 +349,73 @@ export default function DashboardPage({ onLogout }) {
   function handleViewChange(view) {
     setActiveView(view);
     window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function handleFacilityChange(event) {
+    const facilityId = Number(event.target.value);
+    if (facilityId && facilityId !== selectedFacilityIdRef.current) {
+      loadDashboard({ facilityId });
+    }
+  }
+
+  function updateLotForm(field, value) {
+    setLotForm((current) => ({ ...current, [field]: value }));
+  }
+
+  function lotErrorMessage(err) {
+    try {
+      return JSON.parse(err.message).detail || err.message;
+    } catch {
+      return err.message || "Unable to process the parking lot request.";
+    }
+  }
+
+  async function handleLotSubmit(event) {
+    event.preventDefault();
+    setLotAction("submit");
+    setLotMessage(null);
+    try {
+      const submission = await submitParkingLot({
+        name: lotForm.name.trim(),
+        address: lotForm.address.trim(),
+        latitude: Number(lotForm.latitude),
+        longitude: Number(lotForm.longitude),
+        total_slots: Number(lotForm.total_slots)
+      });
+      setLotSubmissions((current) => [submission, ...current]);
+      setLotForm(EMPTY_LOT_FORM);
+      setLotMessage({ type: "success", text: "Parking lot sent to the super admin for approval." });
+    } catch (err) {
+      setLotMessage({ type: "error", text: lotErrorMessage(err) });
+    } finally {
+      setLotAction("");
+    }
+  }
+
+  async function handleLotReview(submissionId, decision) {
+    setLotAction(`${decision}-${submissionId}`);
+    setLotMessage(null);
+    try {
+      const updated = decision === "approve"
+        ? await approveParkingLotSubmission(submissionId)
+        : await rejectParkingLotSubmission(submissionId);
+      setLotSubmissions((current) =>
+        current.map((submission) => submission.id === updated.id ? updated : submission)
+      );
+      setLotMessage({
+        type: "success",
+        text: decision === "approve"
+          ? `${updated.name} is approved and assigned to ${updated.submitter_name}.`
+          : `${updated.name} was rejected.`
+      });
+      if (decision === "approve") {
+        await loadDashboard({ silent: true });
+      }
+    } catch (err) {
+      setLotMessage({ type: "error", text: lotErrorMessage(err) });
+    } finally {
+      setLotAction("");
+    }
   }
 
   function updateLogFilter(key, value) {
@@ -492,7 +611,9 @@ export default function DashboardPage({ onLogout }) {
         <div className="camera-health">
           <ShieldCheck size={20} />
           <strong>
-            {onlineCameras === cameras.length
+            {!cameras.length
+              ? "No cameras configured yet"
+              : onlineCameras === cameras.length
               ? "All cameras are functioning properly"
               : `${onlineCameras}/${cameras.length} cameras online`}
           </strong>
@@ -606,18 +727,171 @@ export default function DashboardPage({ onLogout }) {
   }
 
   function accessBanner() {
+    const accessTitle = isSuperAdmin
+      ? "Super-admin access:"
+      : canSwitchFacilities
+        ? "Multi-facility access:"
+        : "Facility-restricted access:";
+    const accessDescription = isSuperAdmin
+      ? "You can review every facility and administrator from this web dashboard."
+      : canSwitchFacilities
+        ? `You can review ${facilities.length} assigned parking facilities from this web dashboard.`
+        : "You can only view and manage data for your assigned facility.";
+
     return (
       <section className="access-banner">
         <span>
           <ShieldCheck size={30} />
         </span>
-        <strong>Facility-restricted access:</strong>
-        <p>You can only view and manage data for your assigned facility.</p>
+        <strong>{accessTitle}</strong>
+        <p>{accessDescription}</p>
       </section>
     );
   }
 
   function renderView() {
+    if (activeView === "parking-lots") {
+      const pendingCount = lotSubmissions.filter((submission) => submission.status === "pending").length;
+      return (
+        <section className={`lot-management-grid ${isSuperAdmin ? "single" : ""}`}>
+          {!isSuperAdmin ? (
+            <article className="prototype-panel full-panel lot-form-panel">
+              <h3>Add a Parking Lot</h3>
+              <p className="panel-intro">
+                Enter the map coordinates and seeded slot capacity. The lot becomes public only after super-admin approval.
+              </p>
+              <form className="lot-form" onSubmit={handleLotSubmit}>
+                <label>
+                  <span>Parking lot name</span>
+                  <input
+                    value={lotForm.name}
+                    onChange={(event) => updateLotForm("name", event.target.value)}
+                    minLength={3}
+                    maxLength={160}
+                    required
+                  />
+                </label>
+                <label>
+                  <span>Full address or Plus Code</span>
+                  <input
+                    value={lotForm.address}
+                    onChange={(event) => updateLotForm("address", event.target.value)}
+                    minLength={5}
+                    maxLength={255}
+                    required
+                  />
+                </label>
+                <div className="lot-coordinate-grid">
+                  <label>
+                    <span>Latitude</span>
+                    <input
+                      type="number"
+                      step="any"
+                      min="-90"
+                      max="90"
+                      value={lotForm.latitude}
+                      onChange={(event) => updateLotForm("latitude", event.target.value)}
+                      required
+                    />
+                  </label>
+                  <label>
+                    <span>Longitude</span>
+                    <input
+                      type="number"
+                      step="any"
+                      min="-180"
+                      max="180"
+                      value={lotForm.longitude}
+                      onChange={(event) => updateLotForm("longitude", event.target.value)}
+                      required
+                    />
+                  </label>
+                </div>
+                <label>
+                  <span>Seeded slot count</span>
+                  <input
+                    type="number"
+                    min="1"
+                    max="10000"
+                    value={lotForm.total_slots}
+                    onChange={(event) => updateLotForm("total_slots", event.target.value)}
+                    required
+                  />
+                </label>
+                <button className="primary-button" type="submit" disabled={lotAction === "submit"}>
+                  {lotAction === "submit" ? "Submitting..." : "Submit for approval"}
+                </button>
+              </form>
+            </article>
+          ) : null}
+
+          <article className="prototype-panel full-panel submission-panel">
+            <div className="panel-title-row">
+              <h3>{isSuperAdmin ? "Owner Submissions" : "My Submissions"}</h3>
+              <span>{pendingCount} pending</span>
+            </div>
+            {lotMessage ? (
+              <p className={`lot-message ${lotMessage.type}`}>{lotMessage.text}</p>
+            ) : null}
+            <div className="submission-list">
+              {lotSubmissions.length ? lotSubmissions.map((submission) => (
+                <article className="submission-card" key={submission.id}>
+                  <div className="submission-card-header">
+                    <div>
+                      <strong>{submission.name}</strong>
+                      <p>{submission.address}</p>
+                    </div>
+                    <span className={`submission-status ${submission.status}`}>
+                      {submission.status}
+                    </span>
+                  </div>
+                  <div className="submission-meta">
+                    <span><b>Owner:</b> {submission.submitter_name}</span>
+                    <span><b>Slots:</b> {submission.total_slots}</span>
+                    <span><b>Submitted:</b> {formatDateTime(submission.submitted_at)}</span>
+                    {submission.facility_id ? <span><b>Facility ID:</b> {submission.facility_id}</span> : null}
+                  </div>
+                  <a
+                    className="map-link"
+                    href={`https://www.google.com/maps/search/?api=1&query=${submission.latitude},${submission.longitude}`}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    <MapPin size={16} />
+                    Check coordinates on map
+                  </a>
+                  {isSuperAdmin && submission.status === "pending" ? (
+                    <div className="submission-actions">
+                      <button
+                        className="primary-button"
+                        type="button"
+                        onClick={() => handleLotReview(submission.id, "approve")}
+                        disabled={Boolean(lotAction)}
+                      >
+                        {lotAction === `approve-${submission.id}` ? "Approving..." : "Approve"}
+                      </button>
+                      <button
+                        className="danger-button"
+                        type="button"
+                        onClick={() => handleLotReview(submission.id, "reject")}
+                        disabled={Boolean(lotAction)}
+                      >
+                        {lotAction === `reject-${submission.id}` ? "Rejecting..." : "Reject"}
+                      </button>
+                    </div>
+                  ) : null}
+                </article>
+              )) : (
+                <p className="empty-text">
+                  {isSuperAdmin ? "No parking lot requests have been submitted." : "You have not submitted a parking lot yet."}
+                </p>
+              )}
+            </div>
+          </article>
+        </section>
+      );
+    }
+
     if (activeView === "slots") {
       return (
         <section className="view-stack">
@@ -640,7 +914,9 @@ export default function DashboardPage({ onLogout }) {
                   </div>
                 ))
               ) : (
-                <p className="empty-text">No parking slots found for this facility.</p>
+                <p className="empty-text">
+                  The slot count is seeded, but individual live-monitored slots are not configured yet.
+                </p>
               )}
             </div>
           </article>
@@ -673,7 +949,13 @@ export default function DashboardPage({ onLogout }) {
             <div className="settings-list">
               <div>
                 <span>Data Access</span>
-                <strong>Restricted to {facility.name}</strong>
+                <strong>
+                  {isSuperAdmin
+                    ? "All ParkFinder facilities"
+                    : canSwitchFacilities
+                      ? `${facilities.length} assigned facilities`
+                      : `Restricted to ${facility.name}`}
+                </strong>
               </div>
               <div>
                 <span>Realtime Source</span>
@@ -698,14 +980,42 @@ export default function DashboardPage({ onLogout }) {
       return (
         <section className="settings-grid">
           <article className="prototype-panel user-panel">
-            <h3>Admin User</h3>
-            <div className="user-card">
-              <span className="admin-avatar large">M</span>
-              <div>
-                <strong>{adminProfile?.full_name || "Montero Parking Admin"}</strong>
-                <p>{adminProfile?.email || "admin@parkfinder.local"}</p>
-                <small>Facility ID: {adminProfile?.facility_id || facility.id}</small>
-              </div>
+            <h3>{isSuperAdmin ? "Administrator Accounts" : "Admin User"}</h3>
+            <div className="user-list">
+              {adminUsers.map((user) => {
+                const userIsSuperAdmin = user.is_super_admin || user.role === "super_admin";
+                const userFacilityIds = user.facility_ids?.length
+                  ? user.facility_ids
+                  : user.facility_id
+                    ? [user.facility_id]
+                    : [];
+                const assignedFacilityNames = facilities
+                  .filter((facilityOption) => userFacilityIds.includes(facilityOption.id))
+                  .map((facilityOption) => facilityOption.name);
+                return (
+                  <div className="user-card" key={user.id}>
+                    <span className="admin-avatar large">
+                      {user.full_name.trim().charAt(0).toUpperCase()}
+                    </span>
+                    <div>
+                      <div className="user-name-row">
+                        <strong>{user.full_name}</strong>
+                        <span className={`role-badge ${userIsSuperAdmin ? "super-admin" : ""}`}>
+                          {userIsSuperAdmin ? "Super Admin" : "Facility Admin"}
+                        </span>
+                      </div>
+                      <p>{user.email}</p>
+                      <small>
+                        {userIsSuperAdmin
+                          ? "Access to all facilities"
+                          : assignedFacilityNames.length
+                            ? assignedFacilityNames.join(", ")
+                            : `${userFacilityIds.length} assigned facilities`}
+                      </small>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </article>
           {accessBanner()}
@@ -718,10 +1028,6 @@ export default function DashboardPage({ onLogout }) {
         {summaryMetrics}
         <section className="prototype-grid">
           {facilityInfoPanel()}
-          <article className="prototype-panel trend-panel">
-            <h3>Occupancy Trend (Today)</h3>
-            <TrendChart history={history} />
-          </article>
           {cameraStatusPanel()}
           {logsPanel()}
         </section>
@@ -738,12 +1044,28 @@ export default function DashboardPage({ onLogout }) {
             <h1>
               Park<span>Finder</span>
             </h1>
-            <p>Admin Panel</p>
+            <p>{isSuperAdmin ? "Super Admin Panel" : "Admin Panel"}</p>
           </div>
 
           <div className="facility-switcher">
-            <span>Facility (You are managing):</span>
-            <div className="facility-label">{facility.name}</div>
+            <span>{canSwitchFacilities ? "Select facility:" : "Facility (You are managing):"}</span>
+            {canSwitchFacilities ? (
+              <select
+                className="facility-select"
+                value={selectedFacilityId || ""}
+                onChange={handleFacilityChange}
+                aria-label="Select a facility to manage"
+                disabled={loading}
+              >
+                {facilities.map((facilityOption) => (
+                  <option key={facilityOption.id} value={facilityOption.id}>
+                    {facilityOption.name}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <div className="facility-label">{facility.name}</div>
+            )}
           </div>
 
           <nav className="sidebar-nav" aria-label="Admin navigation">
@@ -769,16 +1091,33 @@ export default function DashboardPage({ onLogout }) {
       <section className="admin-main">
         <header className="admin-header">
           <div className="admin-title">
-            <h2>{activeCopy.title} - {facility.name}</h2>
+            <h2>
+              {activeCopy.title}
+              {activeView === "parking-lots" ? "" : ` - ${facility.name}`}
+            </h2>
             <p>{activeCopy.subtitle}</p>
           </div>
 
-          <span className="dashboard-badge">ADMIN DASHBOARD (WEB) - FACILITY RESTRICTED</span>
+          <span className="dashboard-badge">
+            {isSuperAdmin
+              ? "SUPER ADMIN DASHBOARD (WEB) - ALL FACILITIES"
+              : canSwitchFacilities
+                ? `ADMIN DASHBOARD (WEB) - ${facilities.length} ASSIGNED FACILITIES`
+                : "ADMIN DASHBOARD (WEB) - FACILITY RESTRICTED"}
+          </span>
 
           <div className="admin-profile">
-            <span className="admin-avatar">M</span>
-            <strong>Admin Montero</strong>
-            <ChevronDown size={16} />
+            <span className="admin-avatar">{adminInitial}</span>
+            <div>
+              <strong>{adminProfile?.full_name}</strong>
+              <small>
+                {isSuperAdmin
+                  ? "Super Admin"
+                  : canSwitchFacilities
+                    ? `${facilities.length}-Facility Admin`
+                    : "Facility Admin"}
+              </small>
+            </div>
           </div>
 
           <div className="last-updated">
@@ -786,7 +1125,7 @@ export default function DashboardPage({ onLogout }) {
               <span>Last Updated:</span>
               <strong>{formatDateTime(latestSample)}</strong>
             </div>
-            <button onClick={loadDashboard} disabled={loading} aria-label="Refresh dashboard">
+            <button onClick={() => loadDashboard()} disabled={loading} aria-label="Refresh dashboard">
               <RefreshCw size={28} />
             </button>
           </div>

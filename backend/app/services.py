@@ -8,9 +8,13 @@ from app.schemas import FacilityDetail, FacilitySummary
 
 
 def calculate_facility_counts(db: Session, facility_id: int) -> tuple[int, int, int, float]:
-    total = db.scalar(
+    monitored_total = db.scalar(
         select(func.count(models.ParkingSlot.id)).where(models.ParkingSlot.facility_id == facility_id)
     ) or 0
+    configured_total = db.scalar(
+        select(models.Facility.total_slots).where(models.Facility.id == facility_id)
+    ) or 0
+    total = monitored_total or configured_total
     occupied = db.scalar(
         select(func.count(models.ParkingSlot.id)).where(
             models.ParkingSlot.facility_id == facility_id,
@@ -37,7 +41,7 @@ def facility_to_summary(db: Session, facility: models.Facility) -> FacilitySumma
         address=facility.address,
         latitude=facility.latitude,
         longitude=facility.longitude,
-        total_slots=total or facility.total_slots,
+        total_slots=total,
         available_slots=available,
         occupied_slots=occupied,
         occupancy_percentage=percentage,

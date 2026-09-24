@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -19,8 +19,36 @@ class AdminProfile(BaseModel):
     email: str
     full_name: str
     facility_id: int | None
+    facility_ids: list[int]
+    role: str
+    is_super_admin: bool
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class ParkingLotSubmissionCreate(BaseModel):
+    name: str = Field(min_length=3, max_length=160)
+    address: str = Field(min_length=5, max_length=255)
+    latitude: float = Field(ge=-90, le=90)
+    longitude: float = Field(ge=-180, le=180)
+    total_slots: int = Field(ge=1, le=10_000)
+
+
+class ParkingLotSubmissionItem(BaseModel):
+    id: int
+    name: str
+    address: str
+    latitude: float
+    longitude: float
+    total_slots: int
+    status: Literal["pending", "approved", "rejected"]
+    submitted_by_admin_id: int
+    submitter_name: str
+    submitter_email: str
+    reviewed_by_admin_id: int | None = None
+    facility_id: int | None = None
+    submitted_at: datetime
+    reviewed_at: datetime | None = None
 
 
 class SlotStatus(BaseModel):

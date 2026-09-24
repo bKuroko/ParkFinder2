@@ -13,6 +13,77 @@ from app.db.base import Base  # noqa: E402
 from app.db.session import SessionLocal, engine  # noqa: E402
 
 
+# These names and coordinates come from map-listed CDO parking places. The
+# coordinates are the decoded centers of their published Plus Codes. Capacity
+# is intentionally demo seed data; it is not claimed as a surveyed slot count.
+VERIFIED_CDO_FACILITIES = [
+    {
+        "facility_code": "FAC-002",
+        "name": "Chowking Divisoria Parking Lot",
+        "address": "FJHV+248, Divisoria, Cagayan de Oro City, Misamis Oriental",
+        "latitude": 8.4775375,
+        "longitude": 124.6428281,
+        "total_slots": 18,
+    },
+    {
+        "facility_code": "FAC-003",
+        "name": "TODC Pay Parking",
+        "address": "FJGV+835, Cagayan de Oro City, Misamis Oriental",
+        "latitude": 8.4757625,
+        "longitude": 124.6427344,
+        "total_slots": 24,
+    },
+    {
+        "facility_code": "FAC-004",
+        "name": "Pearlmont Hotel Carpark",
+        "address": "FMH3+9JX, Cagayan de Oro City, Misamis Oriental",
+        "latitude": 8.4784875,
+        "longitude": 124.6541094,
+        "total_slots": 28,
+    },
+    {
+        "facility_code": "FAC-005",
+        "name": "Limketkai Parking Lot",
+        "address": "FMJ4+CW7, Limketkai Center, Cagayan de Oro City, Misamis Oriental",
+        "latitude": 8.4810375,
+        "longitude": 124.6572969,
+        "total_slots": 80,
+    },
+    {
+        "facility_code": "FAC-006",
+        "name": "Limketkai Luxe Hotel Parking Lot",
+        "address": "FMM5+C25, Limketkai Center, Cagayan de Oro City, Misamis Oriental",
+        "latitude": 8.4835125,
+        "longitude": 124.6576094,
+        "total_slots": 45,
+    },
+    {
+        "facility_code": "FAC-007",
+        "name": "Puregold Parking Lot",
+        "address": "FMM5+8FR, Cagayan de Oro City, Misamis Oriental",
+        "latitude": 8.4833625,
+        "longitude": 124.6586406,
+        "total_slots": 60,
+    },
+    {
+        "facility_code": "FAC-008",
+        "name": "Pay Parking Area - Corrales Extension",
+        "address": "FMQ2+29Q, Corrales Extension, Cagayan de Oro City, Misamis Oriental",
+        "latitude": 8.4875875,
+        "longitude": 124.6509844,
+        "total_slots": 35,
+    },
+    {
+        "facility_code": "FAC-009",
+        "name": "Lifestyle District Parking Lot",
+        "address": "FMQ2+8M7, 946 Corrales Extension, Cagayan de Oro City, Misamis Oriental",
+        "latitude": 8.4882875,
+        "longitude": 124.6516719,
+        "total_slots": 50,
+    },
+]
+
+
 def rectangle(x: int, y: int, width: int, height: int) -> list[dict[str, float]]:
     return [
         {"x": x, "y": y},
@@ -134,6 +205,127 @@ def seed() -> None:
             admin.full_name = "Montero Parking Admin"
             admin.facility_id = facility.id
 
+        super_admin = (
+            db.query(models.AdminUser)
+            .filter_by(email="superadmin@parkfinder.local")
+            .one_or_none()
+        )
+        if super_admin is None:
+            super_admin = models.AdminUser(
+                email="superadmin@parkfinder.local",
+                full_name="ParkFinder Super Admin",
+                hashed_password=get_password_hash("superadmin123"),
+                facility_id=None,
+            )
+            db.add(super_admin)
+        else:
+            super_admin.full_name = "ParkFinder Super Admin"
+            super_admin.facility_id = None
+            super_admin.is_active = True
+
+        facilities_by_code = {facility.facility_code: facility}
+        for spec in VERIFIED_CDO_FACILITIES:
+            parking_facility = (
+                db.query(models.Facility)
+                .filter_by(facility_code=spec["facility_code"])
+                .one_or_none()
+            )
+            if parking_facility is None:
+                parking_facility = models.Facility(
+                    facility_code=spec["facility_code"],
+                    name=spec["name"],
+                    address=spec["address"],
+                    latitude=spec["latitude"],
+                    longitude=spec["longitude"],
+                    total_slots=spec["total_slots"],
+                )
+                db.add(parking_facility)
+                db.flush()
+            else:
+                parking_facility.name = spec["name"]
+                parking_facility.address = spec["address"]
+                parking_facility.latitude = spec["latitude"]
+                parking_facility.longitude = spec["longitude"]
+                parking_facility.total_slots = spec["total_slots"]
+
+            facilities_by_code[spec["facility_code"]] = parking_facility
+
+            # Remove the former generated camera/slot/history demo only once.
+            # Future seed runs leave real monitoring data alone.
+            has_legacy_demo = db.query(models.Camera).filter_by(
+                facility_id=parking_facility.id,
+                source_url="pending-cctv-setup",
+            ).first()
+            if has_legacy_demo:
+                slot_ids = [
+                    slot_id
+                    for (slot_id,) in db.query(models.ParkingSlot.id)
+                    .filter_by(facility_id=parking_facility.id)
+                    .all()
+                ]
+                if slot_ids:
+                    db.query(models.OccupancyRecord).filter(
+                        models.OccupancyRecord.slot_id.in_(slot_ids)
+                    ).delete(synchronize_session=False)
+                db.query(models.MonitoringLog).filter_by(
+                    facility_id=parking_facility.id
+                ).delete(synchronize_session=False)
+                db.query(models.Camera).filter_by(
+                    facility_id=parking_facility.id
+                ).delete(synchronize_session=False)
+                db.query(models.OccupancySnapshot).filter_by(
+                    facility_id=parking_facility.id
+                ).delete(synchronize_session=False)
+                db.query(models.ParkingSlot).filter_by(
+                    facility_id=parking_facility.id
+                ).delete(synchronize_session=False)
+
+        db.flush()
+        verified_facilities = [
+            facilities_by_code[f"FAC-{index:03d}"] for index in range(2, 10)
+        ]
+
+        admin.assigned_facilities = [facility]
+        super_admin.assigned_facilities = []
+
+        three_lot_admin = (
+            db.query(models.AdminUser)
+            .filter_by(email="cluster3@parkfinder.local")
+            .one_or_none()
+        )
+        if three_lot_admin is None:
+            three_lot_admin = models.AdminUser(
+                email="cluster3@parkfinder.local",
+                full_name="CDO Three-Lot Admin",
+                hashed_password=get_password_hash("cluster3admin"),
+                facility_id=verified_facilities[0].id,
+            )
+            db.add(three_lot_admin)
+        else:
+            three_lot_admin.full_name = "CDO Three-Lot Admin"
+            three_lot_admin.facility_id = verified_facilities[0].id
+            three_lot_admin.is_active = True
+        three_lot_admin.assigned_facilities = verified_facilities[:3]
+
+        five_lot_admin = (
+            db.query(models.AdminUser)
+            .filter_by(email="cluster5@parkfinder.local")
+            .one_or_none()
+        )
+        if five_lot_admin is None:
+            five_lot_admin = models.AdminUser(
+                email="cluster5@parkfinder.local",
+                full_name="CDO Five-Lot Admin",
+                hashed_password=get_password_hash("cluster5admin"),
+                facility_id=verified_facilities[3].id,
+            )
+            db.add(five_lot_admin)
+        else:
+            five_lot_admin.full_name = "CDO Five-Lot Admin"
+            five_lot_admin.facility_id = verified_facilities[3].id
+            five_lot_admin.is_active = True
+        five_lot_admin.assigned_facilities = verified_facilities[3:]
+
         existing_history = (
             db.query(models.OccupancySnapshot).filter_by(facility_id=facility.id).count()
         )
@@ -208,6 +400,9 @@ def seed() -> None:
         db.commit()
         print("Seed complete.")
         print("Admin login: admin@parkfinder.local / admin123")
+        print("Super-admin login: superadmin@parkfinder.local / superadmin123")
+        print("Three-lot admin: cluster3@parkfinder.local / cluster3admin")
+        print("Five-lot admin: cluster5@parkfinder.local / cluster5admin")
     finally:
         db.close()
 

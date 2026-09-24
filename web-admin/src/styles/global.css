@@ -15,6 +15,7 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
+  overflow-x: hidden;
   background:
     linear-gradient(180deg, #f9fbf9 0%, #eef3ef 100%);
 }
@@ -337,6 +338,25 @@ select:focus {
   font-weight: 800;
 }
 
+.facility-select {
+  min-height: 50px;
+  border-color: rgba(255, 255, 255, 0.22);
+  padding: 12px 42px 12px 14px;
+  color: #ffffff;
+  background: #123444;
+  font-weight: 800;
+}
+
+.facility-select:focus {
+  border-color: #45d66f;
+  box-shadow: 0 0 0 4px rgba(69, 214, 111, 0.18);
+}
+
+.facility-select option {
+  color: #172019;
+  background: #ffffff;
+}
+
 .sidebar-nav {
   display: grid;
   gap: 10px;
@@ -374,7 +394,8 @@ select:focus {
 
 .admin-main {
   min-width: 0;
-  padding: 24px 32px 44px;
+  width: 100%;
+  padding: clamp(20px, 2vw, 32px) clamp(20px, 2.5vw, 40px) 44px;
 }
 
 .admin-header {
@@ -386,8 +407,9 @@ select:focus {
 
 .admin-title h2 {
   color: #050a13;
-  font-size: 31px;
+  font-size: clamp(26px, 2vw, 31px);
   line-height: 1.1;
+  overflow-wrap: anywhere;
 }
 
 .admin-title p {
@@ -404,7 +426,9 @@ select:focus {
   background: #087f24;
   font-size: 17px;
   font-weight: 900;
-  white-space: nowrap;
+  max-width: 100%;
+  text-align: center;
+  white-space: normal;
   box-shadow: 0 8px 22px rgba(8, 127, 36, 0.18);
 }
 
@@ -415,6 +439,24 @@ select:focus {
   color: #050a13;
   font-size: 15px;
   white-space: nowrap;
+}
+
+.admin-profile div {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.admin-profile strong,
+.admin-profile small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.admin-profile small {
+  color: #5b685f;
+  font-size: 12px;
+  font-weight: 800;
 }
 
 .admin-avatar {
@@ -466,7 +508,7 @@ select:focus {
 
 .prototype-metrics {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(210px, 1fr));
   gap: 22px;
   margin-top: 42px;
 }
@@ -534,13 +576,17 @@ select:focus {
 
 .prototype-grid {
   display: grid;
-  grid-template-columns: 1.08fr 1.25fr 0.9fr 1.22fr;
+  grid-template-columns:
+    minmax(280px, 0.95fr)
+    minmax(260px, 0.8fr)
+    minmax(360px, 1.25fr);
   gap: 18px;
   margin-top: 26px;
 }
 
 .prototype-panel {
-  min-height: 456px;
+  min-width: 0;
+  min-height: 420px;
   border: 1px solid #dbe3e4;
   border-radius: 8px;
   padding: 26px;
@@ -575,6 +621,7 @@ select:focus {
 .facility-info-row strong {
   font-size: 16px;
   line-height: 1.45;
+  overflow-wrap: anywhere;
 }
 
 .green-text {
@@ -583,75 +630,6 @@ select:focus {
 
 .red-text {
   color: #d81919 !important;
-}
-
-.trend-panel {
-  padding-bottom: 18px;
-}
-
-.trend-chart {
-  display: grid;
-  gap: 8px;
-}
-
-.trend-body {
-  display: grid;
-  grid-template-columns: 48px minmax(0, 1fr);
-  gap: 10px;
-  height: 276px;
-}
-
-.trend-y-axis {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  padding: 2px 0 8px;
-  color: #050a13;
-  font-size: 14px;
-  font-weight: 750;
-}
-
-.trend-chart svg {
-  width: 100%;
-  height: 100%;
-  overflow: visible;
-  background:
-    linear-gradient(#dfe7e7 1px, transparent 1px),
-    linear-gradient(90deg, transparent 1px, transparent 1px),
-    linear-gradient(180deg, rgba(5, 131, 35, 0.08), rgba(5, 131, 35, 0));
-  background-size: 100% 25%, 100% 100%, 100% 100%;
-}
-
-.trend-axis {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-  padding-left: 58px;
-  color: #050a13;
-  font-size: 13px;
-  font-weight: 800;
-}
-
-.trend-axis strong {
-  color: #087d30;
-  text-align: center;
-}
-
-.trend-axis span:last-child {
-  text-align: right;
-}
-
-.trend-empty {
-  height: 318px;
-  display: grid;
-  place-items: center;
-  align-content: center;
-  gap: 8px;
-  border: 1px dashed #cddbd1;
-  border-radius: 8px;
-  color: #5b685f;
-  background: #fbfdfb;
-  text-align: center;
 }
 
 .prototype-camera-list {
@@ -688,6 +666,7 @@ select:focus {
 
 .camera-health {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 12px;
   margin-top: 54px;
@@ -946,6 +925,7 @@ select:focus {
   color: #5b685f;
   font-size: 13px;
   font-weight: 700;
+  overflow-wrap: anywhere;
 }
 
 .settings-grid {
@@ -983,6 +963,173 @@ select:focus {
   min-height: 240px;
 }
 
+.lot-management-grid {
+  display: grid;
+  grid-template-columns: minmax(320px, 0.8fr) minmax(440px, 1.2fr);
+  gap: 24px;
+  margin-top: 42px;
+}
+
+.lot-management-grid.single {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.panel-intro {
+  margin: -10px 0 22px;
+  color: #5b685f;
+  font-weight: 650;
+  line-height: 1.5;
+}
+
+.lot-form {
+  display: grid;
+  gap: 18px;
+}
+
+.lot-coordinate-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.primary-button,
+.danger-button {
+  min-height: 44px;
+  border-radius: 8px;
+  padding: 10px 16px;
+  font-weight: 900;
+}
+
+.primary-button {
+  border: 1px solid #087f24;
+  color: #ffffff;
+  background: #087f24;
+}
+
+.primary-button:not(:disabled):hover {
+  background: #056a1d;
+}
+
+.danger-button {
+  border: 1px solid #d81919;
+  color: #c51515;
+  background: #ffffff;
+}
+
+.danger-button:not(:disabled):hover {
+  color: #ffffff;
+  background: #d81919;
+}
+
+.lot-message {
+  margin-bottom: 16px;
+  border-radius: 8px;
+  padding: 12px 14px;
+  font-weight: 800;
+}
+
+.lot-message.success {
+  color: #087d30;
+  background: #e8f5ea;
+}
+
+.lot-message.error {
+  color: #a32018;
+  background: #fff0ee;
+}
+
+.submission-list {
+  display: grid;
+  gap: 14px;
+}
+
+.submission-card {
+  display: grid;
+  gap: 14px;
+  border: 1px solid #dbe3e4;
+  border-radius: 8px;
+  padding: 18px;
+  background: #fbfdfb;
+}
+
+.submission-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.submission-card-header div {
+  min-width: 0;
+}
+
+.submission-card-header strong {
+  color: #050a13;
+  font-size: 19px;
+}
+
+.submission-card-header p {
+  margin-top: 5px;
+  color: #5b685f;
+  font-weight: 650;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.submission-status {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  padding: 6px 10px;
+  color: #7a5700;
+  background: #fff3c9;
+  font-size: 12px;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.submission-status.approved {
+  color: #087d30;
+  background: #e8f5ea;
+}
+
+.submission-status.rejected {
+  color: #a32018;
+  background: #fff0ee;
+}
+
+.submission-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  color: #4f5d54;
+  font-size: 13px;
+}
+
+.map-link {
+  width: fit-content;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: #087f24;
+  font-weight: 850;
+  text-decoration: none;
+}
+
+.map-link:hover {
+  text-decoration: underline;
+}
+
+.submission-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.user-list {
+  display: grid;
+  gap: 14px;
+}
+
 .user-card {
   display: flex;
   align-items: center;
@@ -1000,8 +1147,16 @@ select:focus {
 }
 
 .user-card div {
+  min-width: 0;
   display: grid;
   gap: 6px;
+}
+
+.user-name-row {
+  display: flex !important;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px !important;
 }
 
 .user-card strong {
@@ -1013,6 +1168,23 @@ select:focus {
 .user-card small {
   color: #5b685f;
   font-weight: 750;
+  overflow-wrap: anywhere;
+}
+
+.role-badge {
+  width: fit-content;
+  border-radius: 999px;
+  padding: 5px 9px;
+  color: #1d5e32;
+  background: #e6f4e9;
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.role-badge.super-admin {
+  color: #ffffff;
+  background: #087f24;
 }
 
 .access-banner {
@@ -1080,6 +1252,10 @@ select:focus {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .prototype-grid .recent-logs-panel {
+    grid-column: 1 / -1;
+  }
+
   .slot-grid,
   .camera-card-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1103,19 +1279,32 @@ select:focus {
     position: static;
     height: auto;
     gap: 28px;
+    padding: 22px;
   }
 
   .sidebar-nav {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .admin-header,
-  .prototype-metrics,
   .prototype-grid,
   .settings-grid,
-  .report-strip,
-  .log-filter-bar {
+  .log-filter-bar,
+  .lot-management-grid {
     grid-template-columns: 1fr;
+  }
+
+  .admin-header {
+    gap: 18px;
+  }
+
+  .prototype-metrics,
+  .report-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .prototype-grid .recent-logs-panel {
+    grid-column: auto;
   }
 
   .prototype-panel {
@@ -1124,34 +1313,118 @@ select:focus {
 }
 
 @media (max-width: 760px) {
+  .login-shell,
+  .state-page {
+    padding: 16px;
+  }
+
   .login-card {
     grid-template-columns: 1fr;
+    min-height: auto;
   }
 
   .login-aside,
   .login-panel {
-    padding: 28px;
+    padding: 24px;
   }
 
   .admin-main {
     padding: 16px;
   }
 
+  .admin-sidebar {
+    gap: 18px;
+    padding: 18px 16px;
+  }
+
+  .sidebar-brand h1 {
+    font-size: 29px;
+  }
+
+  .sidebar-brand p {
+    margin-top: 6px;
+    font-size: 15px;
+  }
+
+  .facility-switcher {
+    gap: 8px;
+    margin-top: 24px;
+  }
+
   .sidebar-nav {
+    display: flex;
+    gap: 8px;
+    margin-top: 16px;
+    padding-bottom: 6px;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    scroll-snap-type: inline proximity;
+  }
+
+  .sidebar-nav button {
+    flex: 0 0 auto;
+    min-height: 46px;
+    padding: 12px 14px;
+    font-size: 15px;
+    white-space: nowrap;
+    scroll-snap-align: start;
+  }
+
+  .sidebar-logout {
+    width: fit-content;
+    min-height: 44px;
+    padding: 10px 14px;
+    font-size: 15px;
+  }
+
+  .admin-title p {
+    margin-top: 8px;
+    font-size: 15px;
+    line-height: 1.45;
+  }
+
+  .dashboard-badge {
+    justify-self: stretch;
+    padding: 10px 14px;
+    font-size: 13px;
+    line-height: 1.4;
+  }
+
+  .admin-profile {
+    white-space: normal;
+  }
+
+  .last-updated {
+    width: 100%;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 14px;
+  }
+
+  .prototype-metrics,
+  .report-strip {
     grid-template-columns: 1fr;
+    gap: 14px;
+    margin-top: 28px;
+  }
+
+  .prototype-grid,
+  .view-stack,
+  .settings-grid {
+    gap: 16px;
+    margin-top: 18px;
   }
 
   .metric-card,
   .prototype-log-item,
-  .prototype-camera-item,
-  .camera-detail-card,
   .facility-info-row,
   .access-banner {
     grid-template-columns: 1fr;
   }
 
   .slot-grid,
-  .camera-card-grid {
+  .camera-card-grid,
+  .lot-coordinate-grid {
     grid-template-columns: 1fr;
   }
 
@@ -1160,13 +1433,76 @@ select:focus {
     grid-template-columns: 1fr;
   }
 
+  .log-filter-actions button {
+    width: 100%;
+  }
+
   .metric-card {
+    min-height: auto;
+    padding: 20px;
     text-align: center;
     justify-items: center;
+  }
+
+  .prototype-panel {
+    padding: 20px;
+  }
+
+  .panel-title-row {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .user-card {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .submission-card-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .submission-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .user-card div {
+    min-width: 0;
+    overflow-wrap: anywhere;
   }
 
   .access-banner {
     display: grid;
     justify-items: start;
+    padding: 20px;
+  }
+}
+
+@media (max-width: 420px) {
+  .login-aside,
+  .login-panel,
+  .prototype-panel {
+    padding: 18px;
+  }
+
+  .admin-avatar {
+    width: 42px;
+    height: 42px;
+  }
+
+  .last-updated {
+    align-items: stretch;
+  }
+
+  .last-updated button {
+    padding-left: 12px;
+  }
+
+  .facility-info-row,
+  .camera-detail-card,
+  .prototype-camera-item {
+    gap: 8px;
   }
 }

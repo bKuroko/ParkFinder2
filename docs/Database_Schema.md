@@ -17,9 +17,9 @@ Implemented as `facilities`.
 
 Development seed:
 
-- Facility name: Montero Parking Lot
-- Facility ID/code: `FAC-001`
-- Total slots: 12
+- Montero Parking Lot (`FAC-001`) with its monitored sample slots
+- Eight additional map-listed parking locations in Cagayan de Oro City (`FAC-002` through `FAC-009`)
+- A configured demo `total_slots` count only for the eight verified locations; no fabricated camera, individual-slot, or occupancy records
 
 ## User
 
@@ -33,7 +33,35 @@ Implemented as `admin_users` for the current admin/operator use case.
 - `facility_id`
 - `created_at`
 
-Admins are facility-restricted through `facility_id`.
+`facility_id` remains the account's primary facility for backward compatibility. Multi-facility access is stored in `admin_facility_assignments`. A super admin has no primary or assigned facilities and receives web access across all facilities.
+
+## AdminFacilityAssignment
+
+Implemented as `admin_facility_assignments`.
+
+- `admin_id`
+- `facility_id`
+
+The composite primary key prevents duplicate facility assignments for an account.
+
+## ParkingLotSubmission
+
+Implemented as `parking_lot_submissions`.
+
+- `id`
+- `name`
+- `address`
+- `latitude`
+- `longitude`
+- `total_slots`
+- `status`
+- `submitted_by_admin_id`
+- `reviewed_by_admin_id`
+- `facility_id`
+- `submitted_at`
+- `reviewed_at`
+
+New submissions start as `pending`. Approval creates a `facilities` row and assigns it to the submitting account; rejection does not create a facility.
 
 ## Camera
 
@@ -82,7 +110,7 @@ Implemented as `occupancy_snapshots`.
 - `occupancy_percentage`
 - `captured_at`
 
-This supports admin trend charts and reports.
+This supports occupancy history and admin reports.
 
 ## MonitoringLog
 

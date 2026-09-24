@@ -49,6 +49,31 @@ admin@parkfinder.local
 admin123
 ```
 
+Super-admin web login:
+
+```text
+superadmin@parkfinder.local
+superadmin123
+```
+
+Confirm the super admin can select any listed facility and view administrator accounts. Confirm the regular admin remains locked to Montero Parking Lot.
+
+Multi-facility accounts:
+
+```text
+cluster3@parkfinder.local / cluster3admin
+cluster5@parkfinder.local / cluster5admin
+```
+
+Confirm the ParkFinder admin sees only Montero (`FAC-001`). Confirm the three-lot account sees only `FAC-002` through `FAC-004`. Confirm the five-lot account sees only `FAC-005` through `FAC-009`.
+
+## Parking Lot Approval
+
+1. Log in as a regular facility owner and submit a parking lot from **Parking Lots**.
+2. Confirm another regular owner cannot see the request or approve it.
+3. Log in as the super admin and approve the request.
+4. Confirm the new facility appears in the public API and in the submitting owner's facility selector.
+
 ## Mobile App
 
 1. Start backend with `--host 0.0.0.0`.

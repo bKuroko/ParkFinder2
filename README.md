@@ -4,7 +4,7 @@ ParkFinder is a full-stack smart parking monitoring system. It uses a laptop-bas
 
 The repository contains:
 
-- `backend` - FastAPI REST API, PostgreSQL models, JWT admin auth, seed data, facility-restricted admin routes.
+- `backend` - FastAPI REST API, PostgreSQL models, JWT admin auth, seed data, facility-restricted and super-admin routes.
 - `ai_processing` - YOLOv8/OpenCV video processor using predefined slot polygons.
 - `mobile` - Expo React Native driver app with no login.
 - `web-admin` - Vite React admin dashboard with login and facility metrics.
@@ -55,6 +55,20 @@ Seed admin:
 ```text
 Email: admin@parkfinder.local
 Password: admin123
+```
+
+Seed super admin (web dashboard only):
+
+```text
+Email: superadmin@parkfinder.local
+Password: superadmin123
+```
+
+Seed multi-facility admins (web dashboard only):
+
+```text
+3 facilities: cluster3@parkfinder.local / cluster3admin
+5 facilities: cluster5@parkfinder.local / cluster5admin
 ```
 
 ## 3. Run the web admin dashboard
@@ -125,9 +139,15 @@ Admin endpoints:
 
 - `POST /api/v1/auth/login`
 - `GET /api/v1/auth/me`
+- `GET /api/v1/admin/facilities`
 - `GET /api/v1/admin/dashboard`
 - `GET /api/v1/admin/logs`
 - `GET /api/v1/admin/reports`
+- `GET /api/v1/admin/users` (super admin only)
+- `GET /api/v1/admin/parking-lot-submissions`
+- `POST /api/v1/admin/parking-lot-submissions` (facility owner)
+- `POST /api/v1/admin/parking-lot-submissions/{id}/approve` (super admin only)
+- `POST /api/v1/admin/parking-lot-submissions/{id}/reject` (super admin only)
 
 AI ingest endpoint:
 
@@ -138,7 +158,9 @@ The AI endpoint requires the `X-API-Key` header. The default development key is 
 ## Notes
 
 - The backend creates tables automatically in development when `CREATE_TABLES_ON_START=true`.
-- The seed script inserts one sample facility, one camera, 12 parking slots, sample history, logs, and an admin restricted to that facility.
+- The seed script keeps Montero Parking Lot on the original ParkFinder admin and inserts eight additional map-listed Cagayan de Oro parking locations. Only their demo slot capacities are seeded; cameras, individual slots, and occupancy history are not fabricated for those locations.
+- The three-lot account owns `FAC-002` through `FAC-004`; the five-lot account owns `FAC-005` through `FAC-009`. Montero (`FAC-001`) is not shared with either account.
+- Facility owners can submit a new parking lot in the web dashboard. It becomes public and is assigned to that owner only after a super admin approves it.
 - Replace the sample slot coordinates in `ai_processing/config/parking_slots.sample.json` with real CCTV-calibrated polygons for production footage.
 
 bahog tiktik

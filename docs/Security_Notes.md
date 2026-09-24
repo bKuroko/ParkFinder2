@@ -6,7 +6,7 @@ Admins log in with email and password. Passwords are hashed with bcrypt. The bac
 
 ## Facility Authorization
 
-Admin endpoints are facility-restricted. An admin assigned to one facility cannot request another facility's dashboard, logs, or reports.
+Regular admin endpoints are restricted through `admin_facility_assignments`. An admin can request only its assigned parking facilities. Super admins have no facility assignments; they can select any facility and access the protected administrator list from the web dashboard only.
 
 ## AI API Key
 

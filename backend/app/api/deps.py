@@ -36,8 +36,17 @@ def get_current_admin(
 
 
 def require_facility_access(admin: models.AdminUser, facility_id: int) -> None:
-    if admin.facility_id is not None and admin.facility_id != facility_id:
+    if not admin.is_super_admin and facility_id not in admin.facility_ids:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Admin is not allowed to access this facility",
         )
+
+
+def require_super_admin(admin: models.AdminUser = Depends(get_current_admin)) -> models.AdminUser:
+    if not admin.is_super_admin:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Super-admin access is required",
+        )
+    return admin
