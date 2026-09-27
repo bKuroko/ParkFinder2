@@ -179,10 +179,9 @@ function facilityRows(facility) {
     ["Facility Name", facility.name],
     ["Facility ID", facility.facility_code],
     ["Address", facility.address],
-    ["Operating Hours", "Open 24 Hours"],
+    ["Data Status", "Demo facility"],
     ["Total Slots", facility.total_slots],
-    ["Parking Type", "Outdoor Parking"],
-    ["Managed Since", "June 2026"]
+    ["Parking Type", "Not specified"]
   ];
 }
 
@@ -958,8 +957,8 @@ export default function DashboardPage({ onLogout }) {
                 </strong>
               </div>
               <div>
-                <span>Realtime Source</span>
-                <strong>YOLOv8 AI ingest endpoint</strong>
+                <span>Demo Updates</span>
+                <strong>Seeded data or simulated AI ingest</strong>
               </div>
               <div>
                 <span>Database</span>
@@ -1100,10 +1099,10 @@ export default function DashboardPage({ onLogout }) {
 
           <span className="dashboard-badge">
             {isSuperAdmin
-              ? "SUPER ADMIN DASHBOARD (WEB) - ALL FACILITIES"
+              ? "SUPER ADMIN DASHBOARD (WEB) - ALL DEMO FACILITIES"
               : canSwitchFacilities
-                ? `ADMIN DASHBOARD (WEB) - ${facilities.length} ASSIGNED FACILITIES`
-                : "ADMIN DASHBOARD (WEB) - FACILITY RESTRICTED"}
+                ? `ADMIN DASHBOARD (WEB) - ${facilities.length} DEMO FACILITIES`
+                : "ADMIN DASHBOARD (WEB) - DEMO FACILITY"}
           </span>
 
           <div className="admin-profile">

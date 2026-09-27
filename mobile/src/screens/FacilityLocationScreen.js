@@ -9,7 +9,7 @@ const LIVE_REFRESH_MS = 5000;
 
 function formatUpdatedAt(value) {
   if (!value) {
-    return "No AI updates yet";
+    return "no sensor update";
   }
   return new Date(value).toLocaleString([], {
     month: "short",
@@ -63,7 +63,7 @@ export default function FacilityLocationScreen({ facilityId, onBack }) {
         if (isActive) {
           setError(
             getCachedFacility(facilityId)
-              ? "Live updates are unavailable. Showing the last known parking information."
+              ? "Connection unavailable. Showing saved demo information."
               : err.message
           );
         }
@@ -90,7 +90,7 @@ export default function FacilityLocationScreen({ facilityId, onBack }) {
   if (!facility) {
     return (
       <View style={styles.centered}>
-        <OfflineNotice message={error || "Live parking information is unavailable right now."} />
+        <OfflineNotice message={error || "Parking information is unavailable right now."} />
         <Pressable style={styles.smallButton} onPress={onBack}>
           <Text style={styles.smallButtonText}>Back</Text>
         </Pressable>
@@ -107,7 +107,7 @@ export default function FacilityLocationScreen({ facilityId, onBack }) {
       />
 
       <View style={styles.topbar}>
-        <Pressable onPress={onBack} style={styles.backCircle}>
+        <Pressable onPress={onBack} style={styles.backCircle} accessibilityLabel="Back to parking details">
           <Ionicons name="chevron-back" size={24} color="#172033" />
         </Pressable>
         <View style={styles.topbarCopy}>
@@ -126,14 +126,14 @@ export default function FacilityLocationScreen({ facilityId, onBack }) {
             <Text style={styles.name}>{facility.name}</Text>
             <Text style={styles.address}>{facility.address}</Text>
             <View style={styles.badgeRow}>
-              <Text style={styles.badge}>Open 24 Hours</Text>
+              <Text style={styles.badge}>Demo Facility</Text>
             </View>
             <View style={styles.liveRow}>
               <View style={[styles.liveDot, error ? styles.staleDot : null]} />
               <Text style={styles.liveText}>
                 {loading
-                  ? "Refreshing..."
-                  : `${error ? "Last known update" : "Last updated"} ${formatUpdatedAt(facility.updated_at)}`}
+                  ? "Refreshing demo data..."
+                  : `${error ? "Saved demo data" : "Demo data"} · ${formatUpdatedAt(facility.updated_at)}`}
               </Text>
             </View>
           </View>
@@ -208,9 +208,9 @@ const styles = StyleSheet.create({
     elevation: 6
   },
   backCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     backgroundColor: "#eef5f0",
     alignItems: "center",
     justifyContent: "center"
@@ -311,7 +311,7 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: "#078528"
+    backgroundColor: "#64748b"
   },
   staleDot: {
     backgroundColor: "#7a8790"

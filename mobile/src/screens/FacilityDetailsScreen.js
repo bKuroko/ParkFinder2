@@ -15,7 +15,7 @@ const LIVE_REFRESH_MS = 5000;
 
 function formatUpdatedAt(value) {
   if (!value) {
-    return "No AI updates yet";
+    return "no sensor update";
   }
   return new Date(value).toLocaleString([], {
     month: "short",
@@ -60,7 +60,7 @@ export default function FacilityDetailsScreen({ facilityId, onBack, onViewMap })
         if (isActive) {
           setError(
             getCachedFacility(facilityId)
-              ? "Live updates are unavailable. Showing the last known parking information."
+              ? "Connection unavailable. Showing saved demo information."
               : err.message
           );
         }
@@ -92,7 +92,7 @@ export default function FacilityDetailsScreen({ facilityId, onBack, onViewMap })
   if (!facility) {
     return (
       <View style={styles.centered}>
-        <OfflineNotice message={error || "Live parking information is unavailable right now."} />
+        <OfflineNotice message={error || "Parking information is unavailable right now."} />
         <Pressable style={styles.backButton} onPress={onBack}>
           <Text style={styles.backText}>Back</Text>
         </Pressable>
@@ -104,10 +104,10 @@ export default function FacilityDetailsScreen({ facilityId, onBack, onViewMap })
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
       <View style={styles.heroImage}>
         <View style={styles.heroTop}>
-          <Pressable style={styles.circleButton} onPress={onBack} hitSlop={8}>
+          <Pressable style={styles.circleButton} onPress={onBack} accessibilityLabel="Back to parking map">
             <Ionicons name="chevron-back" size={23} color="#ffffff" />
           </Pressable>
-          <Text style={styles.heroBadge}>Live Parking</Text>
+          <Text style={styles.heroBadge}>Demo Parking</Text>
         </View>
         <View style={styles.heroBrand}>
           <View style={styles.heroIcon}>
@@ -137,15 +137,15 @@ export default function FacilityDetailsScreen({ facilityId, onBack, onViewMap })
         <Text style={styles.address}>{facility.address}</Text>
 
         <View style={styles.chipRow}>
-          <Text style={styles.openChip}>Open 24 Hours</Text>
+          <Text style={styles.openChip}>Demo Facility</Text>
         </View>
 
         <View style={styles.liveStatus}>
           <View style={[styles.liveDot, error ? styles.staleDot : null]} />
           <Text style={styles.liveText}>
             {loading
-              ? "Refreshing live availability..."
-              : `${error ? "Last known update" : "Last updated"} ${formatUpdatedAt(facility.updated_at)}`}
+              ? "Refreshing demo data..."
+              : `${error ? "Saved demo data" : "Demo data"} · ${formatUpdatedAt(facility.updated_at)}`}
           </Text>
         </View>
 
@@ -174,7 +174,7 @@ export default function FacilityDetailsScreen({ facilityId, onBack, onViewMap })
           <View style={styles.infoDivider} />
           <View style={styles.infoItem}>
             <Ionicons name="analytics-outline" size={22} color="#172033" />
-            <Text style={styles.infoText}>Live Slot Count</Text>
+            <Text style={styles.infoText}>Demo Slot Count</Text>
           </View>
         </View>
 
@@ -222,9 +222,9 @@ const styles = StyleSheet.create({
     zIndex: 2
   },
   circleButton: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "rgba(255, 255, 255, 0.14)",
@@ -353,7 +353,7 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: "#078528"
+    backgroundColor: "#64748b"
   },
   staleDot: {
     backgroundColor: "#7a8790"

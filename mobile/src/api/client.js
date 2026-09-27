@@ -25,7 +25,10 @@ function cacheFacility(facility) {
 export function getCachedFacilities(search = "") {
   const query = search.trim().toLowerCase();
   return query
-    ? cachedFacilities.filter((facility) => facility.name.toLowerCase().includes(query))
+    ? cachedFacilities.filter((facility) =>
+        facility.name.toLowerCase().includes(query) ||
+        facility.facility_code?.toLowerCase().includes(query)
+      )
     : [...cachedFacilities];
 }
 
@@ -55,7 +58,7 @@ async function request(path, timeoutMs = REQUEST_TIMEOUT_MS) {
     if (error.isHttpError) {
       throw error;
     }
-    throw new Error("Live parking updates are temporarily unavailable. Check your connection and try again.");
+    throw new Error("Parking information is unavailable. Check your connection and try again.");
   } finally {
     clearTimeout(timeout);
   }

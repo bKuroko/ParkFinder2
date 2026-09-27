@@ -9,6 +9,10 @@ The repository contains:
 - `mobile` - Expo React Native driver app with no login.
 - `web-admin` - Vite React admin dashboard with login and facility metrics.
 
+## Current demo scope
+
+All nine listed facilities (`FAC-001` through `FAC-009`) are demo entries. Montero (`FAC-001`) has sample slots, camera status, and occupancy history. The other eight have demo capacities but no monitored slots, so their reported available counts are demo values. The included test video is not footage from any of these facilities. A separate video-backed facility will be added later; the current web and mobile apps use the demo API data.
+
 Detailed project guides are in `docs/`.
 
 ## Prerequisites
@@ -100,6 +104,10 @@ For a physical Android device, set `EXPO_PUBLIC_API_URL` in `mobile/.env` to you
 ```text
 EXPO_PUBLIC_API_URL=http://192.168.1.50:8000/api/v1
 ```
+
+Keep the phone and laptop on the same network. This project uses Expo SDK 52, so the Android phone needs the [SDK 52 version of Expo Go](https://expo.dev/go?device=true&platform=android&sdkVersion=52).
+
+The mobile map uses OpenLayers with OpenStreetMap's public tiles for this demo. No map API key is needed. Keep OpenStreetMap attribution visible and follow its [tile usage policy](https://operations.osmfoundation.org/policies/tiles/); choose a dedicated tile service before wider production use.
 
 For an Android emulator, use:
 

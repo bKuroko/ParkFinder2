@@ -1,21 +1,23 @@
 import { useEffect, useState } from "react";
 import {
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
-  View
+  View,
+  useWindowDimensions
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
 import { getCachedFacilities, getFacility, searchFacilities } from "../api/client";
 import OpenLayersMap from "../components/OpenLayersMap";
 
-const LIVE_REFRESH_MS = 5000;
+const REFRESH_MS = 5000;
 
 function formatUpdatedAt(value) {
   if (!value) {
-    return "No AI updates yet";
+    return "no sensor update";
   }
   return new Date(value).toLocaleString([], {
     month: "short",
@@ -37,12 +39,12 @@ function facilityAddress(facility) {
 
 function availableSlotText(facility) {
   if (typeof facility?.available_slots === "number" && typeof facility?.total_slots === "number") {
-    return `${facility.available_slots} / ${facility.total_slots} available`;
+    return `${facility.available_slots} of ${facility.total_slots} spaces available`;
   }
   if (typeof facility?.available_slots === "number") {
     return `${facility.available_slots} available`;
   }
-  return "Live slot count unavailable";
+  return "Space count unavailable";
 }
 
 function OfflineNotice({ message }) {
@@ -58,56 +60,59 @@ function OfflineNotice({ message }) {
 }
 
 export default function FacilityMapScreen({ onSelectFacility }) {
+  const { height } = useWindowDimensions();
   const [search, setSearch] = useState("");
   const [facilities, setFacilities] = useState([]);
   const [selectedFacility, setSelectedFacility] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState("");
+  const [listError, setListError] = useState("");
+  const [selectedError, setSelectedError] = useState("");
+  const error = selectedFacility ? selectedError : listError;
 
   useEffect(() => {
     let isActive = true;
     const query = search.trim();
-
-    if (!query) {
-      setFacilities([]);
-      setLoading(false);
-      setError("");
-      return () => {
-        isActive = false;
-      };
-    }
-
     setLoading(true);
-    const timeout = setTimeout(() => {
+    setFacilities(getCachedFacilities(query));
+    setListError("");
+
+    function loadFacilities(showLoading = false) {
+      if (showLoading) {
+        setLoading(true);
+      }
       searchFacilities(query)
         .then((data) => {
           if (isActive) {
-            setFacilities(data.slice(0, 1));
-            setError("");
+            setFacilities(data);
+            setListError("");
           }
         })
         .catch((err) => {
           if (isActive) {
-            const cached = getCachedFacilities(query).slice(0, 1);
+            const cached = getCachedFacilities(query);
             setFacilities(cached);
-            setError(
+            setListError(
               cached.length
-                ? "Live updates are unavailable. Showing the last known parking information."
+                ? "Connection unavailable. Showing saved demo information."
                 : err.message
             );
           }
         })
         .finally(() => {
-          if (isActive) {
+          if (isActive && showLoading) {
             setLoading(false);
           }
         });
-    }, 250);
+    }
+
+    const timeout = setTimeout(() => loadFacilities(true), query ? 250 : 0);
+    const interval = setInterval(() => loadFacilities(), REFRESH_MS);
 
     return () => {
       isActive = false;
       clearTimeout(timeout);
+      clearInterval(interval);
     };
   }, [search]);
 
@@ -126,11 +131,11 @@ export default function FacilityMapScreen({ onSelectFacility }) {
         const data = await getFacility(selectedFacility.id);
         if (isActive) {
           setSelectedFacility(data);
-          setError("");
+          setSelectedError("");
         }
       } catch (err) {
         if (isActive) {
-          setError("Live updates are unavailable. Showing the last known parking information.");
+          setSelectedError("Connection unavailable. Showing saved demo information.");
         }
       } finally {
         if (isActive && showStatus) {
@@ -140,7 +145,7 @@ export default function FacilityMapScreen({ onSelectFacility }) {
     }
 
     refreshSelectedFacility(true);
-    const interval = setInterval(() => refreshSelectedFacility(false), LIVE_REFRESH_MS);
+    const interval = setInterval(() => refreshSelectedFacility(false), REFRESH_MS);
 
     return () => {
       isActive = false;
@@ -149,23 +154,29 @@ export default function FacilityMapScreen({ onSelectFacility }) {
   }, [selectedFacility?.id]);
 
   const isSearching = search.trim().length > 0;
-  const searchFacility = facilities[0] || null;
-  const displayFacility = selectedFacility || searchFacility;
-  const mapFacilities = displayFacility ? [displayFacility] : [];
-  const showSearchResultCard = isSearching && !selectedFacility && Boolean(searchFacility);
+  const mapFacilities = facilities.map((facility) =>
+    facility.id === selectedFacility?.id ? selectedFacility : facility
+  );
+  if (selectedFacility && !mapFacilities.some((facility) => facility.id === selectedFacility.id)) {
+    mapFacilities.push(selectedFacility);
+  }
 
   function selectFacility(facility) {
     setSelectedFacility(facility);
     setSearch("");
-    setFacilities([]);
-    setError("");
+    setSelectedError("");
+  }
+
+  function updateSearch(value) {
+    setSearch(value);
+    setSelectedFacility(null);
   }
 
   return (
     <View style={styles.screen}>
       <OpenLayersMap
         facilities={mapFacilities}
-        selectedFacilityId={displayFacility?.id}
+        selectedFacilityId={selectedFacility?.id}
         onSelectFacility={(facilityId) => {
           const facility = mapFacilities.find((item) => item.id === facilityId);
           if (facility) {
@@ -190,12 +201,7 @@ export default function FacilityMapScreen({ onSelectFacility }) {
           <Ionicons name="search" size={21} color="#596579" />
           <TextInput
             value={search}
-            onChangeText={(value) => {
-              setSearch(value);
-              if (selectedFacility) {
-                setSelectedFacility(null);
-              }
-            }}
+            onChangeText={updateSearch}
             placeholder="Search for parking"
             placeholderTextColor="#7a8790"
             style={styles.input}
@@ -203,11 +209,9 @@ export default function FacilityMapScreen({ onSelectFacility }) {
           />
           {search ? (
             <Pressable
-              onPress={() => {
-                setSearch("");
-                setFacilities([]);
-              }}
-              hitSlop={10}
+              onPress={() => setSearch("")}
+              hitSlop={14}
+              accessibilityLabel="Clear search"
             >
               <Ionicons name="close-circle" size={21} color="#596579" />
             </Pressable>
@@ -215,73 +219,72 @@ export default function FacilityMapScreen({ onSelectFacility }) {
         </View>
       </View>
 
-      {showSearchResultCard ? (
+      {!selectedFacility && !isSearching && listError ? (
+        <View style={styles.mapNotice}><OfflineNotice message={listError} /></View>
+      ) : null}
+
+      {isSearching && !selectedFacility ? (
         <View style={styles.resultSheet}>
           <View style={styles.handle} />
           <View style={styles.resultHeader}>
-            <Text style={styles.sheetTitle}>Parking Facility</Text>
-            <Text style={[styles.liveText, error ? styles.staleText : null]}>
-              {loading ? "Updating..." : error ? "Last known" : "Live data"}
-            </Text>
+            <View style={styles.headerCopy}>
+              <Text style={styles.sheetTitle}>
+                {loading && !facilities.length ? "Searching parking lots..." : `${facilities.length} matching lots`}
+              </Text>
+              <Text style={styles.sheetSubtitle}>Demo availability · Cagayan de Oro</Text>
+            </View>
           </View>
 
           <OfflineNotice message={error} />
 
-          <Pressable style={styles.resultRow} onPress={() => selectFacility(searchFacility)}>
-            <View style={styles.facilityIcon}>
-              <Text style={styles.facilityIconText}>P</Text>
-            </View>
-            <View style={styles.facilityCopy}>
-              <Text style={styles.facilityName}>{searchFacility.name}</Text>
-              <Text style={styles.facilityAddress}>{facilityAddress(searchFacility)}</Text>
-              <Text style={styles.availableText}>{availableSlotText(searchFacility)}</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={22} color="#172033" />
-          </Pressable>
-
-          <Pressable style={styles.detailsButton} onPress={() => onSelectFacility(searchFacility.id)}>
-            <Ionicons name="information-circle-outline" size={20} color="#ffffff" />
-            <Text style={styles.detailsButtonText}>View Details</Text>
-          </Pressable>
+          <ScrollView style={[styles.resultsList, { maxHeight: Math.min(300, height * 0.37) }]} keyboardShouldPersistTaps="handled">
+            {facilities.map((facility) => (
+              <Pressable style={styles.resultRow} key={facility.id} onPress={() => selectFacility(facility)}>
+                <View style={styles.facilityIcon}>
+                  <Text style={styles.facilityIconText}>P</Text>
+                </View>
+                <View style={styles.facilityCopy}>
+                  <Text style={styles.facilityName} numberOfLines={1}>{facility.name}</Text>
+                  <Text style={styles.facilityAddress} numberOfLines={1}>{facilityAddress(facility)}</Text>
+                  <Text style={styles.availableText}>{availableSlotText(facility)}</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={22} color="#172033" />
+              </Pressable>
+            ))}
+            {!loading && !facilities.length ? (
+              <Text style={styles.emptyText}>No parking lot matches this search.</Text>
+            ) : null}
+          </ScrollView>
         </View>
       ) : null}
 
       {selectedFacility ? (
         <View style={styles.resultSheet}>
           <View style={styles.handle} />
+          <View style={styles.selectedTopLine}>
+            <Text style={styles.demoLabel}>DEMO AVAILABILITY</Text>
+            <Pressable style={styles.closeButton} onPress={() => setSelectedFacility(null)} accessibilityLabel="Close parking lot details">
+              <Ionicons name="close" size={22} color="#172033" />
+            </Pressable>
+          </View>
+          <Text style={styles.availableValue}>{availableSlotText(selectedFacility)}</Text>
           <View style={styles.selectedHeader}>
             <View style={styles.facilityIcon}>
               <Text style={styles.facilityIconText}>P</Text>
             </View>
             <View style={styles.facilityCopy}>
-              <Text style={styles.facilityName}>{selectedFacility.name}</Text>
-              <Text style={styles.facilityAddress}>{facilityAddress(selectedFacility)}</Text>
-              <Text style={styles.openChip}>Open 24 Hours</Text>
+              <Text style={styles.facilityName} numberOfLines={2}>{selectedFacility.name}</Text>
+              <Text style={styles.facilityAddress} numberOfLines={2}>{facilityAddress(selectedFacility)}</Text>
             </View>
           </View>
 
           <OfflineNotice message={error} />
-
-          <View style={styles.metricRow}>
-            <View>
-              <Text style={styles.availableValue}>
-                {selectedFacility.available_slots}
-                <Text style={styles.totalValue}> / {selectedFacility.total_slots}</Text>
-              </Text>
-              <Text style={styles.metricLabel}>Available Slots</Text>
-            </View>
-            <View style={styles.circle}>
-              <Text style={styles.circleText}>{selectedFacility.occupancy_percentage}%</Text>
-              <Text style={styles.metricLabel}>Occupied</Text>
-            </View>
-          </View>
-
           <View style={styles.updateRow}>
-            <View style={[styles.liveDot, error ? styles.staleDot : null]} />
+            <Ionicons name="time-outline" size={15} color="#64748b" />
             <Text style={styles.updatedText}>
               {refreshing
-                ? "Refreshing live availability..."
-                : `${error ? "Last known update" : "Last updated"} ${formatUpdatedAt(selectedFacility.updated_at)}`}
+                ? "Refreshing demo data..."
+                : `${error ? "Saved demo data" : "Demo data"} · ${formatUpdatedAt(selectedFacility.updated_at)}`}
             </Text>
           </View>
 
@@ -372,6 +375,13 @@ const styles = StyleSheet.create({
     shadowRadius: 20,
     elevation: 8
   },
+  mapNotice: {
+    position: "absolute",
+    left: 14,
+    right: 14,
+    bottom: 16,
+    zIndex: 5
+  },
   handle: {
     alignSelf: "center",
     width: 58,
@@ -385,31 +395,63 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     gap: 10,
-    marginBottom: 8
+    minHeight: 48,
+    marginBottom: 4
+  },
+  headerCopy: {
+    flex: 1
   },
   sheetTitle: {
     color: "#172033",
     fontSize: 17,
     fontWeight: "900"
   },
-  liveText: {
-    color: "#078528",
+  sheetSubtitle: {
+    marginTop: 3,
+    color: "#64748b",
     fontSize: 12,
-    fontWeight: "900"
-  },
-  staleText: {
-    color: "#7a8790"
+    fontWeight: "700"
   },
   resultRow: {
-    marginTop: 6,
+    minHeight: 72,
+    paddingVertical: 8,
     flexDirection: "row",
     alignItems: "center",
     gap: 12
+  },
+  resultsList: {
+    maxHeight: 280
+  },
+  emptyText: {
+    marginVertical: 12,
+    color: "#596579",
+    fontSize: 13
+  },
+  selectedTopLine: {
+    minHeight: 40,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between"
+  },
+  demoLabel: {
+    color: "#64748b",
+    fontSize: 11,
+    fontWeight: "900",
+    letterSpacing: 1
+  },
+  closeButton: {
+    width: 48,
+    height: 48,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: -6,
+    marginRight: -6
   },
   selectedHeader: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12
+    gap: 12,
+    marginTop: 12
   },
   facilityIcon: {
     width: 42,
@@ -444,67 +486,17 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "900"
   },
-  openChip: {
-    alignSelf: "flex-start",
-    overflow: "hidden",
-    marginTop: 8,
-    borderRadius: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    color: "#0b6b2c",
-    backgroundColor: "#d8f5df",
-    fontSize: 12,
-    fontWeight: "900"
-  },
-  metricRow: {
-    marginTop: 16,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between"
-  },
   availableValue: {
     color: "#078528",
-    fontSize: 28,
-    fontWeight: "900"
-  },
-  totalValue: {
-    color: "#172033",
-    fontSize: 20
-  },
-  metricLabel: {
-    marginTop: 5,
-    color: "#172033",
-    fontSize: 13,
-    fontWeight: "700"
-  },
-  circle: {
-    alignItems: "center"
-  },
-  circleText: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    borderWidth: 8,
-    borderColor: "#078528",
-    color: "#172033",
+    fontSize: 24,
     fontWeight: "900",
-    textAlign: "center",
-    textAlignVertical: "center"
+    lineHeight: 30
   },
   updateRow: {
     marginTop: 13,
     flexDirection: "row",
     alignItems: "center",
     gap: 7
-  },
-  liveDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: "#078528"
-  },
-  staleDot: {
-    backgroundColor: "#7a8790"
   },
   updatedText: {
     flex: 1,
@@ -514,7 +506,7 @@ const styles = StyleSheet.create({
   },
   detailsButton: {
     marginTop: 14,
-    minHeight: 46,
+    minHeight: 50,
     borderRadius: 8,
     backgroundColor: "#07942f",
     flexDirection: "row",
