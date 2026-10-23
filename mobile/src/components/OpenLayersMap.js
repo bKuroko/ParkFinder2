@@ -175,7 +175,7 @@ function buildMapHtml(facilities, selectedFacilityId, zoom) {
         marker.type = "button";
         marker.className = "parking-marker" + (selected ? " selected" : "");
         marker.style.setProperty("--pin-color", facility.color);
-        marker.setAttribute("aria-label", facility.name + ", " + facility.available_slots + " of " + facility.total_slots + " demo spaces available");
+        marker.setAttribute("aria-label", facility.name + ", " + facility.available_slots + " of " + facility.total_slots + " spaces available");
 
         const label = document.createElement("span");
         label.className = "parking-label";
@@ -283,7 +283,7 @@ export default function OpenLayersMap({
         key={mapKey}
         originWhitelist={["*"]}
         source={source}
-        applicationNameForUserAgent="ParkFinderDemo/0.1"
+        applicationNameForUserAgent="ParkFinder/0.1"
         cacheEnabled
         cacheMode="LOAD_DEFAULT"
         javaScriptEnabled

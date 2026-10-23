@@ -29,7 +29,8 @@ import {
   getReports,
   rejectParkingLotSubmission,
   removeToken,
-  submitParkingLot
+  submitParkingLot,
+  setSlotStatus
 } from "../api/client";
 import MetricCard from "../components/MetricCard";
 
@@ -202,6 +203,7 @@ export default function DashboardPage({ onLogout }) {
   const [lotForm, setLotForm] = useState(EMPTY_LOT_FORM);
   const [lotMessage, setLotMessage] = useState(null);
   const [lotAction, setLotAction] = useState("");
+  const [slotAction, setSlotAction] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [activeView, setActiveView] = useState("dashboard");
@@ -335,7 +337,7 @@ export default function DashboardPage({ onLogout }) {
   const onlineCameras = cameras.filter((camera) => camera.status === "online").length;
   const activeCopy = VIEW_COPY[activeView] || VIEW_COPY.dashboard;
 
-  const navItems = [
+  const allNavItems = [
     [Home, "Dashboard", "dashboard"],
     [SlidersHorizontal, "Slot Overview", "slots"],
     [FileText, "Logs & Reports", "logs"],
@@ -344,6 +346,9 @@ export default function DashboardPage({ onLogout }) {
     [Settings, "Facility Settings", "settings"],
     [Users, "Users", "users"]
   ];
+  const navItems = isSuperAdmin
+    ? allNavItems.filter(([, , view]) => !["logs", "cameras"].includes(view))
+    : allNavItems;
 
   function handleViewChange(view) {
     setActiveView(view);
@@ -388,6 +393,19 @@ export default function DashboardPage({ onLogout }) {
       setLotMessage({ type: "error", text: lotErrorMessage(err) });
     } finally {
       setLotAction("");
+    }
+  }
+
+  async function handleSlotStatus(direction) {
+    setSlotAction(true);
+    setError("");
+    try {
+      await setSlotStatus(selectedFacilityId, direction);
+      await loadDashboard({ silent: true });
+    } catch (err) {
+      setError(err.message || "Unable to update slot status.");
+    } finally {
+      setSlotAction("");
     }
   }
 
@@ -897,27 +915,17 @@ export default function DashboardPage({ onLogout }) {
           {summaryMetrics}
           <article className="prototype-panel full-panel">
             <div className="panel-title-row">
-              <h3>Slot Overview</h3>
-              <span>{slots.length} monitored slots</span>
+              <h3>Parking Slot Count</h3>
+              <span>Manual vehicle count for {facility.name}</span>
             </div>
-            <div className="slot-grid">
-              {slots.length ? (
-                slots.map((slot) => (
-                  <div className={`slot-card ${slot.is_occupied ? "occupied" : "available"}`} key={slot.slot_number}>
-                    <div>
-                      <strong>{slot.slot_number}</strong>
-                      <span>{statusLabel(slot.is_occupied)}</span>
-                    </div>
-                    <small>Confidence {(Number(slot.confidence || 0) * 100).toFixed(0)}%</small>
-                    <time>Last seen {formatDateTime(slot.last_seen_at)}</time>
-                  </div>
-                ))
-              ) : (
-                <p className="empty-text">
-                  The slot count is seeded, but individual live-monitored slots are not configured yet.
-                </p>
-              )}
-            </div>
+            <p>Available: <strong>{facility.available_slots}</strong> · Occupied: <strong>{facility.occupied_slots}</strong> · Total: <strong>{facility.total_slots}</strong></p>
+            {!isSuperAdmin && <>
+              {error && <p className="error-text">{error}</p>}
+              <div className="slot-actions">
+                <button disabled={slotAction || facility.available_slots <= 0} onClick={() => handleSlotStatus("in")}>In</button>
+                <button disabled={slotAction || facility.occupied_slots <= 0} onClick={() => handleSlotStatus("out")}>Out</button>
+              </div>
+            </>}
           </article>
         </section>
       );

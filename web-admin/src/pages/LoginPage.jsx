@@ -4,8 +4,8 @@ import { CarFront, LockKeyhole, ShieldCheck } from "lucide-react";
 import { login } from "../api/client";
 
 export default function LoginPage({ onLogin }) {
-  const [email, setEmail] = useState("admin@parkfinder.local");
-  const [password, setPassword] = useState("admin123");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -36,7 +36,7 @@ export default function LoginPage({ onLogin }) {
               Secure admin access
             </p>
             <h1>ParkFinder Admin</h1>
-            <p>Monitor facility occupancy, camera status, reports, and AI parking updates from one focused dashboard.</p>
+            <p>Manage parking facilities and monitor available and occupied slot counts.</p>
           </div>
         </div>
 

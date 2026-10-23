@@ -107,3 +107,10 @@ export function getCurrentAdmin() {
 export function getFacility(facilityId) {
   return request(`/facilities/${facilityId}`);
 }
+
+export function setSlotStatus(facilityId, direction) {
+  return request(`/admin/facilities/${facilityId}/slots/count`, {
+    method: "POST",
+    body: JSON.stringify({ direction })
+  });
+}

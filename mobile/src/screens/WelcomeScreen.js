@@ -24,7 +24,7 @@ export default function WelcomeScreen({ onViewMap }) {
           </Text>
           <Text style={styles.city}>Cagayan de Oro City</Text>
           <Text style={styles.subtitle} numberOfLines={2}>
-            Explore demo parking availability across the city.
+            Explore parking availability across the city.
           </Text>
         </View>
 

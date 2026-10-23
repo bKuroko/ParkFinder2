@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  ImageBackground,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -12,6 +13,16 @@ import { Ionicons } from "@expo/vector-icons";
 import { getCachedFacility, getFacility } from "../api/client";
 
 const LIVE_REFRESH_MS = 5000;
+
+function satelliteTileUrl(latitude, longitude) {
+  if (typeof latitude !== "number" || typeof longitude !== "number") return null;
+  const zoom = 18;
+  const scale = 2 ** zoom;
+  const x = Math.floor(((longitude + 180) / 360) * scale);
+  const latitudeRadians = (latitude * Math.PI) / 180;
+  const y = Math.floor(((1 - Math.asinh(Math.tan(latitudeRadians)) / Math.PI) / 2) * scale);
+  return `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${zoom}/${y}/${x}`;
+}
 
 function formatUpdatedAt(value) {
   if (!value) {
@@ -60,7 +71,7 @@ export default function FacilityDetailsScreen({ facilityId, onBack, onViewMap })
         if (isActive) {
           setError(
             getCachedFacility(facilityId)
-              ? "Connection unavailable. Showing saved demo information."
+              ? "Connection unavailable. Showing saved parking information."
               : err.message
           );
         }
@@ -102,50 +113,43 @@ export default function FacilityDetailsScreen({ facilityId, onBack, onViewMap })
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
-      <View style={styles.heroImage}>
+      <ImageBackground
+        source={satelliteTileUrl(facility.latitude, facility.longitude)
+          ? { uri: satelliteTileUrl(facility.latitude, facility.longitude) }
+          : undefined}
+        resizeMode="cover"
+        style={styles.heroImage}
+      >
+        <View style={styles.heroShade} />
         <View style={styles.heroTop}>
           <Pressable style={styles.circleButton} onPress={onBack} accessibilityLabel="Back to parking map">
             <Ionicons name="chevron-back" size={23} color="#ffffff" />
           </Pressable>
-          <Text style={styles.heroBadge}>Demo Parking</Text>
+          <Text style={styles.heroBadge}>Parking</Text>
         </View>
         <View style={styles.heroBrand}>
-          <View style={styles.heroIcon}>
-            <Text style={styles.heroIconText}>P</Text>
-          </View>
           <View style={styles.heroCopy}>
-            <Text style={styles.heroTitle}>Parking availability</Text>
+            <Text style={styles.heroTitle}>{facility.name}</Text>
+            <Text style={styles.heroSubtitle}>Satellite view</Text>
           </View>
         </View>
-        <View style={styles.parkingDeck}>
-          <View style={styles.deckLane} />
-          <View style={styles.slotRow}>
-            {Array.from({ length: 5 }).map((_, index) => (
-              <View key={`top-${index}`} style={[styles.slotLine, index === 1 ? styles.slotAvailable : null]} />
-            ))}
-          </View>
-          <View style={styles.slotRow}>
-            {Array.from({ length: 5 }).map((_, index) => (
-              <View key={`bottom-${index}`} style={[styles.slotLine, index === 3 ? styles.slotAvailable : null]} />
-            ))}
-          </View>
-        </View>
-      </View>
+        <Text style={styles.imageryAttribution}>Imagery © Esri, Maxar, Earthstar Geographics</Text>
+      </ImageBackground>
 
       <View style={styles.panel}>
         <Text style={styles.name}>{facility.name}</Text>
         <Text style={styles.address}>{facility.address}</Text>
 
         <View style={styles.chipRow}>
-          <Text style={styles.openChip}>Demo Facility</Text>
+          <Text style={styles.openChip}>Parking Facility</Text>
         </View>
 
         <View style={styles.liveStatus}>
           <View style={[styles.liveDot, error ? styles.staleDot : null]} />
           <Text style={styles.liveText}>
             {loading
-              ? "Refreshing demo data..."
-              : `${error ? "Saved demo data" : "Demo data"} · ${formatUpdatedAt(facility.updated_at)}`}
+              ? "Refreshing parking information..."
+              : `${error ? "Saved parking information" : "Parking information"} · ${formatUpdatedAt(facility.updated_at)}`}
           </Text>
         </View>
 
@@ -174,7 +178,7 @@ export default function FacilityDetailsScreen({ facilityId, onBack, onViewMap })
           <View style={styles.infoDivider} />
           <View style={styles.infoItem}>
             <Ionicons name="analytics-outline" size={22} color="#172033" />
-            <Text style={styles.infoText}>Demo Slot Count</Text>
+            <Text style={styles.infoText}>Total Slots</Text>
           </View>
         </View>
 
@@ -215,6 +219,10 @@ const styles = StyleSheet.create({
     backgroundColor: "#071824",
     overflow: "hidden"
   },
+  heroShade: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0, 12, 18, 0.32)"
+  },
   heroTop: {
     flexDirection: "row",
     alignItems: "center",
@@ -243,71 +251,33 @@ const styles = StyleSheet.create({
   },
   heroBrand: {
     marginTop: 34,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 14,
     zIndex: 2
-  },
-  heroIcon: {
-    width: 58,
-    height: 58,
-    borderRadius: 18,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#07942f",
-    shadowColor: "#07942f",
-    shadowOpacity: 0.32,
-    shadowRadius: 20,
-    elevation: 8
-  },
-  heroIconText: {
-    color: "#ffffff",
-    fontSize: 34,
-    fontWeight: "900"
   },
   heroCopy: {
     flex: 1
   },
   heroTitle: {
     color: "#ffffff",
-    fontSize: 25,
-    fontWeight: "900"
+    fontSize: 24,
+    fontWeight: "900",
+    textShadowColor: "rgba(0,0,0,0.5)",
+    textShadowRadius: 8
   },
-  parkingDeck: {
+  heroSubtitle: {
+    color: "#ffffff",
+    fontSize: 13,
+    fontWeight: "800",
+    marginTop: 6
+  },
+  imageryAttribution: {
     position: "absolute",
-    left: 18,
-    right: 18,
-    bottom: 22,
-    borderRadius: 18,
-    padding: 14,
-    backgroundColor: "rgba(255, 255, 255, 0.08)",
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.14)"
-  },
-  deckLane: {
-    position: "absolute",
-    top: 47,
-    left: 14,
-    right: 14,
-    height: 2,
-    backgroundColor: "rgba(255, 255, 255, 0.18)"
-  },
-  slotRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginVertical: 5
-  },
-  slotLine: {
-    width: "17%",
-    height: 28,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.24)",
-    backgroundColor: "rgba(255, 255, 255, 0.07)"
-  },
-  slotAvailable: {
-    borderColor: "#40d267",
-    backgroundColor: "rgba(64, 210, 103, 0.24)"
+    right: 12,
+    bottom: 8,
+    color: "#ffffff",
+    fontSize: 9,
+    fontWeight: "700",
+    textShadowColor: "rgba(0,0,0,0.7)",
+    textShadowRadius: 3
   },
   panel: {
     marginTop: -24,

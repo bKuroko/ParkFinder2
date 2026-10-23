@@ -16,10 +16,46 @@ from app.schemas import (
     ParkingLotSubmissionCreate,
     ParkingLotSubmissionItem,
 )
-from app.services import facility_to_summary
+from app.services import create_occupancy_snapshot, facility_to_summary
 
 
 router = APIRouter(prefix="/admin", tags=["admin"])
+
+
+@router.post("/facilities/{facility_id}/slots/count")
+def adjust_slot_count(
+    facility_id: int,
+    payload: dict[str, str],
+    db: Session = Depends(get_db),
+    current_admin: models.AdminUser = Depends(get_current_admin),
+) -> dict[str, object]:
+    require_facility_access(current_admin, facility_id)
+    direction = payload.get("direction")
+    if direction not in {"in", "out"}:
+        raise HTTPException(status_code=422, detail="direction must be 'in' or 'out'")
+    facility = db.get(models.Facility, facility_id)
+    if facility is None:
+        raise HTTPException(status_code=404, detail="Facility not found")
+    slots = list(db.scalars(select(models.ParkingSlot).where(models.ParkingSlot.facility_id == facility_id).order_by(models.ParkingSlot.slot_number)).all())
+    if not slots:
+        slots = [models.ParkingSlot(facility_id=facility_id, slot_number=f"MANUAL-{i:04d}", polygon=[], is_occupied=False, confidence=0) for i in range(1, facility.total_slots + 1)]
+        db.add_all(slots)
+        db.flush()
+    target = next((slot for slot in slots if slot.is_occupied == (direction == "out")), None)
+    if target is None:
+        raise HTTPException(status_code=409, detail="No available slots" if direction == "in" else "No occupied slots")
+    occupied = direction == "in"
+    target.is_occupied = occupied
+    target.confidence = 1.0
+    now = datetime.now(timezone.utc)
+    target.last_seen_at = now
+    status_label = "occupied" if occupied else "available"
+    db.add(models.OccupancyRecord(slot_id=target.id, status=status_label, timestamp=now))
+    db.add(models.MonitoringLog(facility_id=facility_id, level="info", message=f"Admin recorded vehicle {direction}; {target.slot_number} is {status_label}", details={"event_type": "vehicle_entry" if occupied else "vehicle_exit", "slot_number": target.slot_number, "status": status_label, "source": "admin"}))
+    db.flush()
+    snapshot = create_occupancy_snapshot(db, facility_id)
+    db.commit()
+    return {"available_slots": snapshot.available_slots, "occupied_slots": snapshot.occupied_slots, "total_slots": facility.total_slots}
 
 
 def _submission_item(

@@ -63,7 +63,7 @@ export default function FacilityLocationScreen({ facilityId, onBack }) {
         if (isActive) {
           setError(
             getCachedFacility(facilityId)
-              ? "Connection unavailable. Showing saved demo information."
+              ? "Connection unavailable. Showing saved parking information."
               : err.message
           );
         }
@@ -126,14 +126,14 @@ export default function FacilityLocationScreen({ facilityId, onBack }) {
             <Text style={styles.name}>{facility.name}</Text>
             <Text style={styles.address}>{facility.address}</Text>
             <View style={styles.badgeRow}>
-              <Text style={styles.badge}>Demo Facility</Text>
+              <Text style={styles.badge}>Parking Facility</Text>
             </View>
             <View style={styles.liveRow}>
               <View style={[styles.liveDot, error ? styles.staleDot : null]} />
               <Text style={styles.liveText}>
                 {loading
-                  ? "Refreshing demo data..."
-                  : `${error ? "Saved demo data" : "Demo data"} · ${formatUpdatedAt(facility.updated_at)}`}
+                  ? "Refreshing parking information..."
+                  : `${error ? "Saved parking information" : "Parking information"} · ${formatUpdatedAt(facility.updated_at)}`}
               </Text>
             </View>
           </View>

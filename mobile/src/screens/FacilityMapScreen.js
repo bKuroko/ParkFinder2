@@ -94,7 +94,7 @@ export default function FacilityMapScreen({ onSelectFacility }) {
             setFacilities(cached);
             setListError(
               cached.length
-                ? "Connection unavailable. Showing saved demo information."
+                ? "Connection unavailable. Showing saved parking information."
                 : err.message
             );
           }
@@ -135,7 +135,7 @@ export default function FacilityMapScreen({ onSelectFacility }) {
         }
       } catch (err) {
         if (isActive) {
-          setSelectedError("Connection unavailable. Showing saved demo information.");
+          setSelectedError("Connection unavailable. Showing saved parking information.");
         }
       } finally {
         if (isActive && showStatus) {
@@ -231,7 +231,7 @@ export default function FacilityMapScreen({ onSelectFacility }) {
               <Text style={styles.sheetTitle}>
                 {loading && !facilities.length ? "Searching parking lots..." : `${facilities.length} matching lots`}
               </Text>
-              <Text style={styles.sheetSubtitle}>Demo availability · Cagayan de Oro</Text>
+              <Text style={styles.sheetSubtitle}>Parking availability · Cagayan de Oro</Text>
             </View>
           </View>
 
@@ -262,7 +262,7 @@ export default function FacilityMapScreen({ onSelectFacility }) {
         <View style={styles.resultSheet}>
           <View style={styles.handle} />
           <View style={styles.selectedTopLine}>
-            <Text style={styles.demoLabel}>DEMO AVAILABILITY</Text>
+            <Text style={styles.demoLabel}>PARKING AVAILABILITY</Text>
             <Pressable style={styles.closeButton} onPress={() => setSelectedFacility(null)} accessibilityLabel="Close parking lot details">
               <Ionicons name="close" size={22} color="#172033" />
             </Pressable>
@@ -283,8 +283,8 @@ export default function FacilityMapScreen({ onSelectFacility }) {
             <Ionicons name="time-outline" size={15} color="#64748b" />
             <Text style={styles.updatedText}>
               {refreshing
-                ? "Refreshing demo data..."
-                : `${error ? "Saved demo data" : "Demo data"} · ${formatUpdatedAt(selectedFacility.updated_at)}`}
+                ? "Refreshing parking information..."
+                : `${error ? "Saved parking information" : "Parking information"} · ${formatUpdatedAt(selectedFacility.updated_at)}`}
             </Text>
           </View>
 
