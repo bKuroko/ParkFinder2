@@ -451,6 +451,29 @@ def _run(method: str, path: str, query: dict[str, str], headers: dict[str, str],
     raise ApiError(404, "Not found")
 
 
+def _request_body(req: Any) -> dict[str, Any]:
+    """Read JSON from Appwrite Python runtimes with different Request shapes."""
+    raw: Any = None
+    for attribute in ("body_json", "bodyJson", "body"):
+        try:
+            raw = getattr(req, attribute, None)
+        except (AttributeError, TypeError, ValueError):
+            raw = None
+        if raw is not None:
+            break
+    if isinstance(raw, dict):
+        return raw
+    if isinstance(raw, bytes):
+        raw = raw.decode("utf-8", errors="replace")
+    if isinstance(raw, str):
+        try:
+            parsed = json.loads(raw)
+        except (TypeError, ValueError):
+            return {}
+        return parsed if isinstance(parsed, dict) else {}
+    return {}
+
+
 def main(context):
     req = context.req
     headers = {str(key).lower(): value for key, value in (req.headers or {}).items()}
@@ -463,7 +486,7 @@ def main(context):
     if req.method == "OPTIONS":
         return context.res.json({}, 200, cors_headers)
     try:
-        body = req.bodyJson if isinstance(req.bodyJson, dict) else {}
+        body = _request_body(req)
         result, status_code = _run(req.method.upper(), req.path, req.query or {}, headers, body)
         return context.res.json(result, status_code, cors_headers)
     except ApiError as exc:
