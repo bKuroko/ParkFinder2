@@ -69,6 +69,10 @@ X-API-Key: dev-ai-ingest-key
 
 No Raspberry Pi is required for development.
 
+### Send updates to Appwrite
+
+After deploying the `parkfinder-api` Appwrite Function described in [`../appwrite/README.md`](../appwrite/README.md), set `PARKFINDER_API_URL` in `ai_processing/.env` to the generated HTTPS Function domain plus `/api/v1`, and set `PARKFINDER_AI_API_KEY` to the same private value configured as the Function's `AI_INGEST_API_KEY`. The existing detector and simulator can then post through the compatibility endpoint. Keep that key on the YOLO computer; never place it in the mobile app or website.
+
 ## Try Without Footage
 
 Real YOLO detection needs video, an image, or a camera feed. If you do not have footage yet, you can still test the AI-to-backend update flow with the simulator:

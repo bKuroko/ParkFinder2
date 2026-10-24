@@ -86,3 +86,7 @@ X-API-Key: dev-ai-ingest-key
 ```
 
 The AI worker sends slot updates after processing video frames. The backend updates current slot state, creates per-slot occupancy records, creates an occupancy snapshot, and writes a monitoring log.
+
+## Appwrite deployment option
+
+The current FastAPI API runs locally. For the Appwrite version, see [`appwrite/README.md`](../appwrite/README.md). It describes a Python Appwrite Function that keeps the `/api/v1` route contract and stores records in Appwrite TablesDB. Once deployed, set the mobile, web, and AI API base URLs to the Function's HTTPS domain plus `/api/v1`.

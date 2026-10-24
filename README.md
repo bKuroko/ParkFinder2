@@ -15,6 +15,8 @@ All nine listed facilities (`FAC-001` through `FAC-009`) are demo entries. Monte
 
 Detailed project guides are in `docs/`.
 
+The Appwrite backend migration code and deployment notes are in [`appwrite/README.md`](appwrite/README.md). It adds an Appwrite Function that preserves the existing `/api/v1` endpoints and stores data in Appwrite TablesDB; deployment still requires configuring your Appwrite project and secrets.
+
 ## Prerequisites
 
 - Python 3.11+
