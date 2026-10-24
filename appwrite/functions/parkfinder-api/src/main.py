@@ -8,6 +8,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Any
 from urllib.parse import urlencode
@@ -46,8 +47,9 @@ def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
-def _id(row: dict[str, Any]) -> int:
-    return int(row["$id"])
+def _id(row: dict[str, Any]) -> int | str:
+    row_id = str(row["$id"])
+    return int(row_id) if row_id.isdigit() else row_id
 
 
 def _json_field(value: Any, default: Any) -> Any:
@@ -116,8 +118,13 @@ def _next_id(table: str) -> str:
 
 
 def _create(table: str, data: dict[str, Any], row_id: int | str | None = None) -> dict[str, Any]:
+    if row_id is None:
+        # These tables are append-only and don't participate in numeric foreign
+        # keys. Random Appwrite-compatible IDs prevent max(id)+1 collisions on
+        # concurrent vehicle updates and after migrations with existing rows.
+        row_id = uuid.uuid4().hex if table in {"records", "logs", "snapshots"} else _next_id(table)
     return _aw("POST", _table_url(table), body={
-        "rowId": str(row_id if row_id is not None else _next_id(table)),
+        "rowId": str(row_id),
         "data": data,
         "permissions": [],
     })
