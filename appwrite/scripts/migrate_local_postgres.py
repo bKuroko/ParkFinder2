@@ -8,6 +8,7 @@ from __future__ import annotations
 import json
 import os
 import sys
+import time
 from datetime import date, datetime
 from pathlib import Path
 from typing import Any
@@ -43,14 +44,34 @@ def clean(value: Any) -> Any:
 def upsert(table: str, row_id: int, data: dict[str, Any]) -> None:
     base = f"{ENDPOINT}/tablesdb/{DATABASE_ID}/tables/{table}/rows"
     url = f"{base}/{row_id}"
-    response = requests.put(url, headers=HEADERS, json={"data": data, "permissions": []}, timeout=30)
+    response = request_with_retry("PUT", url, json={"data": data, "permissions": []})
     if response.status_code in (200, 201):
         return
     if response.status_code != 404:
         raise RuntimeError(f"Appwrite upsert {table}/{row_id} failed ({response.status_code}): {response.text}")
-    response = requests.post(base, headers=HEADERS, json={"rowId": str(row_id), "data": data, "permissions": []}, timeout=30)
+    response = request_with_retry("POST", base, json={"rowId": str(row_id), "data": data, "permissions": []})
     if not response.ok:
         raise RuntimeError(f"Appwrite create {table}/{row_id} failed ({response.status_code}): {response.text}")
+
+
+def request_with_retry(method: str, url: str, **kwargs) -> requests.Response:
+    """Retry temporary Appwrite/network failures; row upserts are repeatable."""
+    for attempt in range(5):
+        try:
+            response = requests.request(
+                method, url, headers=HEADERS, timeout=(10, 60), **kwargs
+            )
+        except (requests.Timeout, requests.ConnectionError):
+            if attempt == 4:
+                raise
+            time.sleep(2 ** attempt)
+            continue
+        if response.status_code < 500 and response.status_code != 429:
+            return response
+        if attempt == 4:
+            return response
+        time.sleep(2 ** attempt)
+    raise RuntimeError("Appwrite request retry loop exited unexpectedly")
 
 
 def model_rows(session, model):
