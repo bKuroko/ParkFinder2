@@ -1,0 +1,16 @@
+{
+  "cli": {
+    "version": ">= 16.0.0"
+  },
+  "build": {
+    "preview": {
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://parkfinder-api.fra.appwrite.run/api/v1"
+      },
+      "android": {
+        "buildType": "apk"
+      }
+    }
+  }
+}

@@ -6,6 +6,7 @@ clients only need their API base URL changed after the Appwrite deployment.
 from __future__ import annotations
 
 import json
+import math
 import os
 import re
 import uuid
@@ -97,9 +98,21 @@ def _query(method: str, attribute: str, values: Any) -> tuple[str, str]:
     return "queries[]", json.dumps({"method": method, "attribute": attribute, "values": values})
 
 
-def _list(table: str, queries: list[tuple[str, str]] | None = None) -> list[dict[str, Any]]:
-    result = _aw("GET", _table_url(table), params=(queries or []) + [("limit", "500")])
-    return result.get("rows", [])
+def _list(table: str, queries: list[tuple[str, str]] | None = None, *, include_deleted: bool = False) -> list[dict[str, Any]]:
+    rows = []
+    # Dashboards need recent history only; never walk the entire event archive
+    # during a five-second refresh. Identity/slot tables are fully paginated.
+    recent_field = {"logs": "created_at", "snapshots": "captured_at"}.get(table)
+    while True:
+        page = [{"method": "limit", "values": [100]}, {"method": "offset", "values": [len(rows)]}]
+        if recent_field:
+            page.append({"method": "orderDesc", "attribute": recent_field, "values": []})
+        params = (queries or []) + [("queries[]", json.dumps(q)) for q in page]
+        result = _aw("GET", _table_url(table), params=params).get("rows", [])
+        rows.extend(result)
+        if recent_field or len(result) < 100:
+            break
+    return rows if include_deleted else [row for row in rows if not row.get("is_deleted")]
 
 
 def _get(table: str, row_id: int | str) -> dict[str, Any] | None:
@@ -112,7 +125,7 @@ def _get(table: str, row_id: int | str) -> dict[str, Any] | None:
 
 
 def _next_id(table: str) -> str:
-    rows = _list(table)
+    rows = _list(table, include_deleted=True)
     ids = [int(row["$id"]) for row in rows if str(row.get("$id", "")).isdigit()]
     return str(max(ids, default=0) + 1)
 
@@ -155,6 +168,7 @@ def _summary(facility: dict[str, Any]) -> dict[str, Any]:
         "occupied_slots": occupied,
         "occupancy_percentage": round(occupied * 100 / total, 2) if total else 0.0,
         "updated_at": updated,
+        "slot_count": len(slots),
     }
 
 
@@ -204,7 +218,7 @@ def _current_admin(headers: dict[str, str]) -> dict[str, Any]:
     except JWTError as exc:
         raise ApiError(401, "Could not validate credentials") from exc
     admin = _get("admins", subject)
-    if not admin or not admin.get("is_active", True):
+    if not admin or admin.get("is_deleted") or not admin.get("is_active", True):
         raise ApiError(401, "Could not validate credentials")
     return admin
 
@@ -244,9 +258,44 @@ def _submission_item(row: dict[str, Any]) -> dict[str, Any]:
 
 def _facility(facility_id: int) -> dict[str, Any]:
     row = _get("facilities", facility_id)
-    if not row:
+    if not row or row.get("is_deleted"):
         raise ApiError(404, "Facility not found")
     return row
+
+
+def _lot_fields(body: dict[str, Any]) -> dict[str, Any]:
+    try:
+        fields = {"name": str(body.get("name", "")).strip(), "address": str(body.get("address", "")).strip(),
+                  "latitude": float(body["latitude"]), "longitude": float(body["longitude"]),
+                  "total_slots": int(body["total_slots"])}
+        valid = (3 <= len(fields["name"]) <= 160 and 5 <= len(fields["address"]) <= 255
+                 and math.isfinite(fields["latitude"]) and -90 <= fields["latitude"] <= 90
+                 and math.isfinite(fields["longitude"]) and -180 <= fields["longitude"] <= 180
+                 and not isinstance(body["total_slots"], bool)
+                 and float(body["total_slots"]) == fields["total_slots"] and 1 <= fields["total_slots"] <= 10000)
+    except (KeyError, TypeError, ValueError, OverflowError):
+        valid = False
+    if not valid:
+        raise ApiError(422, "Enter a valid lot name, address, coordinates, and whole-number slot capacity (1–10000)")
+    return fields
+
+
+def _lot_owner(owner_id: Any) -> dict[str, Any]:
+    if not str(owner_id).isdigit():
+        raise ApiError(422, "Select an approved parking owner")
+    owner = _get("admins", str(owner_id))
+    if (not owner or owner.get("is_deleted") or not owner.get("is_active")
+            or _admin_profile(owner)["is_super_admin"] or (owner.get("approval_status") or "approved") != "approved"):
+        raise ApiError(422, "Select an active, approved parking owner")
+    return owner
+
+
+def _new_lot(fields: dict[str, Any]) -> dict[str, Any]:
+    all_rows = _list("facilities", include_deleted=True)
+    if any(not f.get("is_deleted") and f.get("name", "").casefold() == fields["name"].casefold() for f in all_rows):
+        raise ApiError(409, "A facility with this name already exists")
+    codes = [int(m.group(1)) for f in all_rows if (m := re.fullmatch(r"FAC-(\d+)", f.get("facility_code", "")))]
+    return _create("facilities", {**fields, "facility_code": f"FAC-{max(codes, default=0)+1:03d}", "created_at": _now()})
 
 
 def _log(facility_id: int, message: str, details: dict[str, Any] | None = None,
@@ -308,7 +357,7 @@ def _run(method: str, path: str, query: dict[str, str], headers: dict[str, str],
         email = str(body.get("email", "")).strip().lower()
         matches = _list("admins", [_query("equal", "email", email)])
         admin = matches[0] if matches else None
-        if not admin or not PASSWORDS.verify(str(body.get("password", "")), admin.get("hashed_password", "")):
+        if not admin or admin.get("is_deleted") or not PASSWORDS.verify(str(body.get("password", "")), admin.get("hashed_password", "")):
             raise ApiError(401, "Incorrect email or password")
         approval_status = admin.get("approval_status") or "approved"
         if approval_status == "pending":
@@ -331,7 +380,7 @@ def _run(method: str, path: str, query: dict[str, str], headers: dict[str, str],
             raise ApiError(422, "Enter a valid email address")
         if len(password) < 8 or len(password.encode("utf-8")) > 72:
             raise ApiError(422, "Password must be between 8 and 72 characters")
-        if _list("admins", [_query("equal", "email", email)]):
+        if _list("admins", [_query("equal", "email", email)], include_deleted=True):
             raise ApiError(409, "An account with this email already exists")
         # Preserve the existing numeric account IDs used by facility submissions.
         row = _create("admins", {"email": email, "full_name": full_name,
@@ -387,16 +436,59 @@ def _run(method: str, path: str, query: dict[str, str], headers: dict[str, str],
             if not profile["is_super_admin"]:
                 facilities = [f for f in facilities if _id(f) in profile["facility_ids"]]
             return sorted((_summary(f) for f in facilities), key=lambda f: f["name"] or ""), 200
+        if method == "POST" and path == "/admin/facilities":
+            raise ApiError(403, "Parking lots must be submitted by their owner for approval")
+        lot_match = re.fullmatch(r"/admin/facilities/(\d+)", path)
+        if lot_match and method in {"GET", "PATCH", "DELETE"}:
+            fid = int(lot_match.group(1))
+            _require_facility(admin, fid)
+            facility = _facility(fid)
+            if method == "GET":
+                return _facility_detail(facility), 200
+            if profile["is_super_admin"]:
+                raise ApiError(403, "Only the assigned parking owner can edit or delete this lot")
+            if "owner_id" in body:
+                raise ApiError(403, "Parking lot ownership cannot be changed here")
+            if method == "DELETE":
+                _update("facilities", fid, {"is_deleted": True})
+                return {"message": "Parking lot deleted. Monitoring history has been retained."}, 200
+            fields = _lot_fields({**facility, **{k: v for k, v in body.items()
+                                                if k in {"name", "address", "latitude", "longitude", "total_slots"}}})
+            if any(_id(f) != fid and f.get("name", "").casefold() == fields["name"].casefold() for f in _list("facilities")):
+                raise ApiError(409, "A facility with this name already exists")
+            slots = _list("slots", [_query("equal", "facility_id", fid)])
+            if slots and fields["total_slots"] != int(facility.get("total_slots", 0)):
+                raise ApiError(409, "This lot has configured parking slots. Change its slot configuration before changing capacity.")
+            saved = _update("facilities", fid, fields)
+            return _summary(saved), 200
         if method == "GET" and path == "/admin/users":
             if not profile["is_super_admin"]:
                 raise ApiError(403, "Super-admin access is required")
             return [_admin_profile(a) for a in sorted(_list("admins"), key=lambda a: a.get("full_name", ""))], 200
+        account_delete = re.fullmatch(r"/admin/users/(\d+)", path)
+        if account_delete and method == "DELETE":
+            if not profile["is_super_admin"]:
+                raise ApiError(403, "Super-admin access is required")
+            account = _get("admins", account_delete.group(1))
+            if not account or account.get("is_deleted"):
+                raise ApiError(404, "Account not found")
+            if _id(account) == _id(admin):
+                raise ApiError(409, "You cannot delete your signed-in account")
+            account_profile = _admin_profile(account)
+            if account_profile["is_super_admin"] and not any(
+                _id(a) != _id(account) and a.get("is_active") and _admin_profile(a)["is_super_admin"]
+                and (a.get("approval_status") or "approved") == "approved" for a in _list("admins")):
+                raise ApiError(409, "The last active super admin cannot be deleted")
+            if any(_id(f) in account_profile["facility_ids"] for f in _list("facilities")):
+                raise ApiError(409, "This account still manages active parking lots. The owner must remove those lots before the account can be deleted.")
+            _update("admins", account["$id"], {"is_deleted": True, "is_active": False, "role": account_profile["role"]})
+            return {"message": "Account deleted. Login access removed; parking history retained."}, 200
         account_decision = re.fullmatch(r"/admin/users/(\d+)/(approve|reject)", path)
         if account_decision and method == "POST":
             if not profile["is_super_admin"]:
                 raise ApiError(403, "Super-admin access is required")
             account = _get("admins", account_decision.group(1))
-            if not account:
+            if not account or account.get("is_deleted"):
                 raise ApiError(404, "Account not found")
             if (account.get("approval_status") or "approved") != "pending":
                 raise ApiError(409, "Account registration was already reviewed")
@@ -409,6 +501,10 @@ def _run(method: str, path: str, query: dict[str, str], headers: dict[str, str],
             return _admin_profile(saved), 200
         if path == "/admin/parking-lot-submissions" and method == "GET":
             rows = _list("submissions")
+            active_admins = {_id(a) for a in _list("admins")}
+            active_facilities = {_id(f) for f in _list("facilities")}
+            rows = [r for r in rows if r.get("submitted_by_admin_id") in active_admins
+                    and (r.get("facility_id") is None or r.get("facility_id") in active_facilities)]
             if not profile["is_super_admin"]:
                 rows = [r for r in rows if int(r.get("submitted_by_admin_id", -1)) == _id(admin)]
             rows.sort(key=lambda r: r.get("submitted_at", ""), reverse=True)
@@ -416,36 +512,46 @@ def _run(method: str, path: str, query: dict[str, str], headers: dict[str, str],
         if path == "/admin/parking-lot-submissions" and method == "POST":
             if profile["is_super_admin"]:
                 raise ApiError(403, "Super admins review parking lots; a facility owner must submit the request")
-            fields = {"name": str(body.get("name", "")).strip(), "address": str(body.get("address", "")).strip(),
-                      "latitude": float(body.get("latitude")), "longitude": float(body.get("longitude")),
-                      "total_slots": int(body.get("total_slots", 0))}
-            if len(fields["name"]) < 3 or len(fields["address"]) < 5 or fields["total_slots"] < 1:
-                raise ApiError(422, "Invalid parking lot submission")
+            fields = _lot_fields(body)
             row = _create("submissions", {**fields, "status": "pending", "submitted_by_admin_id": _id(admin),
                                            "reviewed_by_admin_id": None, "facility_id": None,
                                            "submitted_at": _now(), "reviewed_at": None})
             return _submission_item(row), 201
+        request_match = re.fullmatch(r"/admin/parking-lot-submissions/(\d+)", path)
+        if request_match and method in {"PATCH", "DELETE"}:
+            if profile["is_super_admin"]:
+                raise ApiError(403, "Only the submitting owner can edit or delete a parking lot request")
+            row = _get("submissions", request_match.group(1))
+            if not row or row.get("is_deleted"):
+                raise ApiError(404, "Parking lot request not found")
+            if not profile["is_super_admin"] and row["submitted_by_admin_id"] != _id(admin):
+                raise ApiError(403, "You cannot manage another owner's parking lot request")
+            if row.get("status") == "approved":
+                raise ApiError(409, "Manage the approved parking lot in the facility list")
+            if method == "DELETE":
+                _update("submissions", row["$id"], {"is_deleted": True})
+                return {"message": "Parking lot request deleted"}, 200
+            fields = _lot_fields({**row, **{k: v for k, v in body.items()
+                                          if k in {"name", "address", "latitude", "longitude", "total_slots"}}})
+            saved = _update("submissions", row["$id"], {**fields, "status": "pending", "reviewed_at": None,
+                            "reviewed_by_admin_id": None, "submitted_at": _now()})
+            return _submission_item(saved), 200
         decision = re.fullmatch(r"/admin/parking-lot-submissions/(\d+)/(approve|reject)", path)
         if decision and method == "POST":
             if not profile["is_super_admin"]:
                 raise ApiError(403, "Super-admin access is required")
             row = _get("submissions", decision.group(1))
-            if not row:
+            if not row or row.get("is_deleted"):
                 raise ApiError(404, "Parking lot submission not found")
             if row.get("status") != "pending":
                 raise ApiError(409, "Parking lot submission was already reviewed")
             facility_id = None
             if decision.group(2) == "approve":
-                if any(f.get("name", "").casefold() == row.get("name", "").casefold() for f in _list("facilities")):
-                    raise ApiError(409, "A facility with this name already exists")
-                codes = [int(m.group(1)) for f in _list("facilities")
-                         if (m := re.fullmatch(r"FAC-(\d+)", f.get("facility_code", "")))]
-                facility = _create("facilities", {"facility_code": f"FAC-{max(codes, default=0)+1:03d}",
-                    "name": row["name"], "address": row["address"], "latitude": row["latitude"],
-                    "longitude": row["longitude"], "total_slots": row["total_slots"], "created_at": _now()})
+                _lot_owner(row.get("submitted_by_admin_id"))
+                facility = _new_lot(_lot_fields(row))
                 facility_id = _id(facility)
                 submitter = _get("admins", row.get("submitted_by_admin_id"))
-                if not submitter:
+                if not submitter or submitter.get("is_deleted"):
                     raise ApiError(409, "The submitting account no longer exists")
                 ids = _json_field(submitter.get("facility_ids"), [])
                 if facility_id not in ids:
@@ -534,7 +640,7 @@ def main(context):
     cors_headers = {
         "Access-Control-Allow-Origin": os.environ.get("WEB_ORIGIN", "*"),
         "Access-Control-Allow-Headers": "Content-Type, Authorization, X-API-Key",
-        "Access-Control-Allow-Methods": "GET, POST, PATCH, OPTIONS",
+        "Access-Control-Allow-Methods": "GET, POST, PATCH, DELETE, OPTIONS",
         "Access-Control-Max-Age": "86400",
     }
     if req.method == "OPTIONS":

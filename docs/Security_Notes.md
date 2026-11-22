@@ -8,6 +8,8 @@ Admins log in with email and password. Passwords are hashed with bcrypt. The bac
 
 Regular admin endpoints are restricted through `admin_facility_assignments`. An admin can request only its assigned parking facilities. Super admins have no facility assignments; they can select any facility and access the protected administrator list from the web dashboard only.
 
+New parking-owner registrations are created with the explicit `facility_admin` role and `pending` approval status. Login remains disabled until a super admin approves them. Super-admin status is read from the stored role for new accounts; the facility-assignment inference is retained only for legacy rows without a role during migration.
+
 ## AI API Key
 
 The AI ingest endpoint requires:

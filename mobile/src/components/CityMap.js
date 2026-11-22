@@ -1,5 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { getOccupancyStatus } from "../utils/occupancy";
 
 const roads = [
   { top: "17%", left: "-8%", width: "120%", rotation: "-18deg", main: true },
@@ -15,19 +16,6 @@ const waterways = [
   { top: "19%", left: "-10%", width: "120%", rotation: "32deg" },
   { top: "64%", left: "-10%", width: "130%", rotation: "-24deg" }
 ];
-
-function statusColor(facility) {
-  if (!facility || facility.total_slots === 0) {
-    return "#9ca3af";
-  }
-  if (facility.occupancy_percentage >= 80) {
-    return "#dc2626";
-  }
-  if (facility.occupancy_percentage >= 50) {
-    return "#f97316";
-  }
-  return "#078528";
-}
 
 export default function CityMap({ facilities = [], onSelectFacility, selectedFacilityId, compact = false }) {
   return (
@@ -67,6 +55,7 @@ export default function CityMap({ facilities = [], onSelectFacility, selectedFac
       <Text style={[styles.roadLabel, styles.labelThree]}>Tiano Bros St.</Text>
 
       {facilities.map((facility, index) => {
+        const occupancy = getOccupancyStatus(facility);
         const isSelected = selectedFacilityId === facility.id;
         const top = facility.map_top ?? 38 + index * 9;
         const left = facility.map_left ?? 50 + index * 6;
@@ -81,8 +70,8 @@ export default function CityMap({ facilities = [], onSelectFacility, selectedFac
             ]}
             onPress={() => onSelectFacility?.(facility.id)}
           >
-            <Ionicons name="location" size={compact ? 48 : 42} color={statusColor(facility)} />
-            <Text style={styles.pinLetter}>P</Text>
+            <Ionicons name="location" size={compact ? 48 : 42} color={occupancy.color} />
+            <Text style={[styles.pinLetter, { color: occupancy.pinTextColor }]}>P</Text>
           </Pressable>
         );
       })}

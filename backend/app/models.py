@@ -19,6 +19,7 @@ class Facility(Base):
     __tablename__ = "facilities"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    is_deleted: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
     facility_code: Mapped[str] = mapped_column(String(40), unique=True, index=True)
     name: Mapped[str] = mapped_column(String(160), index=True)
     address: Mapped[str] = mapped_column(String(255))
@@ -44,10 +45,15 @@ class AdminUser(Base):
     __tablename__ = "admin_users"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    is_deleted: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
     email: Mapped[str] = mapped_column(String(255), unique=True, index=True)
     full_name: Mapped[str] = mapped_column(String(160))
     hashed_password: Mapped[str] = mapped_column(String(255))
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    # Nullable for a safe migration path from existing PostgreSQL databases.
+    # New registrations always set both fields explicitly.
+    account_role: Mapped[str | None] = mapped_column("role", String(30), nullable=True, default="facility_admin")
+    account_approval_status: Mapped[str | None] = mapped_column("approval_status", String(20), nullable=True, default="approved")
     facility_id: Mapped[int | None] = mapped_column(ForeignKey("facilities.id"), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
@@ -59,11 +65,18 @@ class AdminUser(Base):
 
     @property
     def is_super_admin(self) -> bool:
+        if self.account_role is not None:
+            return self.account_role == "super_admin"
+        # Backward compatibility for accounts created before role was stored.
         return self.facility_id is None and not self.assigned_facilities
 
     @property
     def role(self) -> str:
         return "super_admin" if self.is_super_admin else "facility_admin"
+
+    @property
+    def approval_status(self) -> str:
+        return self.account_approval_status or "approved"
 
     @property
     def facility_ids(self) -> list[int]:
@@ -77,6 +90,7 @@ class ParkingLotSubmission(Base):
     __tablename__ = "parking_lot_submissions"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    is_deleted: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
     name: Mapped[str] = mapped_column(String(160), index=True)
     address: Mapped[str] = mapped_column(String(255))
     latitude: Mapped[float] = mapped_column(Float)

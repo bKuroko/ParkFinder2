@@ -11,6 +11,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 
 import { getCachedFacilities, searchFacilities } from "../api/client";
+import { getOccupancyStatus } from "../utils/occupancy";
 
 function formatUpdatedAt(value) {
   if (!value) {
@@ -248,7 +249,7 @@ export default function FacilitySearchScreen({ onSelectFacility }) {
 
             <View style={styles.availabilityRow}>
               <View style={styles.availabilityMain}>
-                <Text style={styles.availableValue}>{item.available_slots ?? "--"}</Text>
+                <Text style={[styles.availableValue, { color: getOccupancyStatus(item).textColor }]}>{item.available_slots ?? "--"}</Text>
                 <View>
                   <Text style={styles.availableLabel}>spaces available</Text>
                   <Text style={styles.updatedText}>{formatUpdatedAt(item.updated_at)}</Text>

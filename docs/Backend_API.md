@@ -35,6 +35,10 @@ Returns only the driver-facing availability summary:
 
 Logs in an admin and returns a JWT access token.
 
+### `POST /api/v1/auth/register`
+
+Public parking-owner registration. Requires `full_name`, `email`, and a password of at least 8 characters. New accounts are stored as inactive `facility_admin` accounts with `approval_status: pending`; they cannot log in until a super admin approves them.
+
 ### `GET /api/v1/auth/me`
 
 Returns the current admin profile, role, and super-admin status.
@@ -59,6 +63,14 @@ Returns simple occupancy report metrics for the assigned or selected facility.
 
 Returns administrator accounts and role information. This endpoint requires super-admin access.
 
+### `POST /api/v1/admin/users/{admin_id}/approve`
+
+Super admin only. Approves a pending owner account and enables login.
+
+### `POST /api/v1/admin/users/{admin_id}/reject`
+
+Super admin only. Rejects a pending owner account and keeps login disabled.
+
 ### `GET /api/v1/admin/parking-lot-submissions`
 
 Returns the logged-in facility owner's own requests. A super admin receives all owner requests.
@@ -74,6 +86,20 @@ Super admin only. Creates the public facility, assigns it to the submitting owne
 ### `POST /api/v1/admin/parking-lot-submissions/{submission_id}/reject`
 
 Super admin only. Rejects the pending request without creating a public facility.
+
+## Parking Lot and Account Management
+
+- Parking lots are created through owner submission and super-admin approval. Direct `POST /api/v1/admin/facilities` is forbidden for every role.
+- `GET /api/v1/admin/facilities/{id}`: view an assigned lot (super admin can view all).
+- `PATCH /api/v1/admin/facilities/{id}`: assigned owners update name, address, coordinates, or unconfigured slot capacity. Super admins cannot edit lots or change ownership.
+- `DELETE /api/v1/admin/facilities/{id}`: assigned owners remove their lot from active lists. Its slots and monitoring history are retained; public detail, history, counting, and AI ingest refuse deleted lots. Super admins cannot delete lots.
+- `PATCH /api/v1/admin/parking-lot-submissions/{id}`: owners edit their own unapproved requests; requests return to pending review.
+- `DELETE /api/v1/admin/parking-lot-submissions/{id}`: owners delete their own unapproved requests. Super admins can approve/reject requests but cannot edit/delete them.
+- `DELETE /api/v1/admin/users/{id}`: super admin removes an account from active lists and disables login and existing tokens. Self deletion and deletion of the last active super admin are forbidden. Account deletion is blocked while the owner still has active parking lots.
+
+Deletion uses an `is_deleted` marker to preserve historical relationships and numeric IDs. Retained deleted account email addresses cannot be registered again. The web UI asks for confirmation before deletion.
+
+Slot capacity is editable here only before individual slots have been configured. This protects occupied slots, camera calibration, and historical records from accidental removal. Configured slot changes require updating the slot configuration separately.
 
 ## AI Ingest Endpoint
 

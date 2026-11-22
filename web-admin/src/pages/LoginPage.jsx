@@ -1,23 +1,56 @@
 import { useState } from "react";
 import { CarFront, LockKeyhole, ShieldCheck } from "lucide-react";
 
-import { login } from "../api/client";
+import { login, registerAdmin } from "../api/client";
+
+function errorText(error) {
+  try {
+    return JSON.parse(error.message).detail || error.message;
+  } catch {
+    return error.message || "Unable to complete the request.";
+  }
+}
 
 export default function LoginPage({ onLogin }) {
+  const [mode, setMode] = useState("login");
+  const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
+
+  function switchMode(nextMode) {
+    setMode(nextMode);
+    setError("");
+    setSuccess("");
+  }
 
   async function handleSubmit(event) {
     event.preventDefault();
     setLoading(true);
     setError("");
+    setSuccess("");
     try {
-      await login(email, password);
-      onLogin();
+      if (mode === "register") {
+        if (password !== confirmPassword) {
+          setError("The passwords do not match.");
+          return;
+        }
+        const result = await registerAdmin({ full_name: fullName, email, password });
+        setEmail(result.email || email.trim().toLowerCase());
+        setPassword("");
+        setConfirmPassword("");
+        setFullName("");
+        setMode("login");
+        setSuccess("Registration submitted. You can sign in after the super admin approves your account.");
+      } else {
+        await login(email, password);
+        onLogin();
+      }
     } catch (err) {
-      setError("Login failed. Check the admin email and password.");
+      setError(errorText(err));
     } finally {
       setLoading(false);
     }
@@ -33,9 +66,9 @@ export default function LoginPage({ onLogin }) {
           <div>
             <p className="eyebrow">
               <ShieldCheck size={15} />
-              Secure admin access
+              Secure management access
             </p>
-            <h1>ParkFinder Admin</h1>
+            <h1>ParkFinder Manager</h1>
             <p>Manage parking facilities and monitor available and occupied slot counts.</p>
           </div>
         </div>
@@ -46,23 +79,42 @@ export default function LoginPage({ onLogin }) {
               <LockKeyhole size={18} />
             </span>
             <div>
-              <h2>Sign in</h2>
-              <p>Use your facility admin or super-admin account.</p>
+              <h2>{mode === "login" ? "Sign in" : "Parking manager registration"}</h2>
+              <p>{mode === "login" ? "Use your parking manager or super-admin account." : "Create a parking manager account for super-admin review."}</p>
             </div>
           </div>
 
+          {mode === "register" ? (
+            <label>
+              Full name
+              <input value={fullName} onChange={(event) => setFullName(event.target.value)} minLength={2} maxLength={160} autoComplete="name" required />
+            </label>
+          ) : null}
           <label>
-            Admin Email
-            <input value={email} onChange={(event) => setEmail(event.target.value)} type="email" />
+            Email
+            <input value={email} onChange={(event) => setEmail(event.target.value)} type="email" maxLength={255} autoComplete="email" required />
           </label>
           <label>
             Password
-            <input value={password} onChange={(event) => setPassword(event.target.value)} type="password" />
+            <input value={password} onChange={(event) => setPassword(event.target.value)} type="password" minLength={mode === "register" ? 8 : undefined} maxLength={mode === "register" ? 72 : undefined} autoComplete={mode === "login" ? "current-password" : "new-password"} required />
           </label>
+          {mode === "register" ? (
+            <label>
+              Confirm password
+              <input value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} type="password" minLength={8} maxLength={72} autoComplete="new-password" required />
+            </label>
+          ) : null}
           {error ? <p className="error-text">{error}</p> : null}
+          {success ? <p className="success-text">{success}</p> : null}
           <button type="submit" disabled={loading}>
-            {loading ? "Signing in..." : "Sign In"}
+            {loading ? "Please wait..." : mode === "login" ? "Sign In" : "Submit Registration"}
           </button>
+          <p className="login-switch">
+            {mode === "login" ? "Parking owner?" : "Already registered?"}{" "}
+            <button className="login-mode-toggle" type="button" onClick={() => switchMode(mode === "login" ? "register" : "login")}>
+              {mode === "login" ? "Create an account" : "Sign in"}
+            </button>
+          </p>
         </form>
       </section>
     </main>

@@ -30,7 +30,7 @@ def get_current_admin(
         raise credentials_exception from exc
 
     admin = db.get(models.AdminUser, int(subject))
-    if not admin or not admin.is_active:
+    if not admin or admin.is_deleted or not admin.is_active:
         raise credentials_exception
     return admin
 

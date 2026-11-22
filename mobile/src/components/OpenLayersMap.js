@@ -1,19 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
 import { WebView } from "react-native-webview";
-
-function markerColor(facility) {
-  if (!facility || facility.total_slots === 0) {
-    return "#9ca3af";
-  }
-  if (facility.occupancy_percentage >= 80) {
-    return "#dc2626";
-  }
-  if (facility.occupancy_percentage >= 50) {
-    return "#f97316";
-  }
-  return "#078528";
-}
+import { getOccupancyStatus } from "../utils/occupancy";
 
 function buildMapHtml(facilities, selectedFacilityId, zoom) {
   const safeFacilities = facilities.map((facility) => ({
@@ -26,7 +14,9 @@ function buildMapHtml(facilities, selectedFacilityId, zoom) {
     total_slots: facility.total_slots,
     occupied_slots: facility.occupied_slots,
     occupancy_percentage: facility.occupancy_percentage,
-    color: markerColor(facility)
+    color: getOccupancyStatus(facility).color,
+    textColor: getOccupancyStatus(facility).textColor,
+    pinTextColor: getOccupancyStatus(facility).pinTextColor
   }));
   const selectedFacility =
     safeFacilities.find((facility) => facility.id === selectedFacilityId) || safeFacilities[0];
@@ -182,12 +172,14 @@ function buildMapHtml(facilities, selectedFacilityId, zoom) {
         const name = document.createElement("strong");
         name.textContent = facility.name || "Parking Facility";
         const availability = document.createElement("small");
+        availability.style.color = facility.textColor;
         availability.textContent = facility.available_slots + " of " + facility.total_slots + " available";
         label.appendChild(name);
         label.appendChild(availability);
 
         const pin = document.createElement("span");
         pin.className = "parking-pin";
+        pin.style.color = facility.pinTextColor;
         pin.textContent = "P";
 
         const tip = document.createElement("span");

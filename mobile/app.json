@@ -2,6 +2,7 @@
   "expo": {
     "name": "ParkFinder",
     "slug": "parkfinder-driver",
+    "owner": "kobebrentoy",
     "version": "0.1.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
@@ -17,6 +18,11 @@
     "plugins": [
       "expo-asset",
       "expo-font"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "dc033604-d24a-4cb8-9752-39acf4c69d7a"
+      }
+    }
   }
 }

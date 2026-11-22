@@ -21,6 +21,7 @@ HEADERS = {"X-Appwrite-Project": PROJECT, "X-Appwrite-Key": KEY, "Content-Type":
 
 TABLES = {
     "facilities": [
+        ("is_deleted", "boolean", {"required": False}),
         ("facility_code", "string", {"size": 40, "required": True}),
         ("name", "string", {"size": 160, "required": True}),
         ("address", "string", {"size": 255, "required": True}),
@@ -31,15 +32,21 @@ TABLES = {
         ("created_at", "datetime", {"required": False}),
     ],
     "admin_users": [
+        ("is_deleted", "boolean", {"required": False}),
         ("email", "string", {"size": 255, "required": True}),
         ("full_name", "string", {"size": 160, "required": True}),
         ("hashed_password", "string", {"size": 255, "required": True}),
         ("is_active", "boolean", {"required": True}),
+        # Optional so this can be added to existing Appwrite projects without
+        # requiring values on already-seeded admin rows.
+        ("role", "string", {"size": 30, "required": False}),
+        ("approval_status", "string", {"size": 20, "required": False}),
         ("facility_id", "integer", {"required": False}),
         ("facility_ids", "text", {"required": False}),
         ("created_at", "datetime", {"required": False}),
     ],
     "parking_lot_submissions": [
+        ("is_deleted", "boolean", {"required": False}),
         ("name", "string", {"size": 160, "required": True}),
         ("address", "string", {"size": 255, "required": True}),
         ("latitude", "float", {"required": True}), ("longitude", "float", {"required": True}),
@@ -82,8 +89,8 @@ INDEXES = {
     "parking_slots": [("facility_slot", ["facility_id", "slot_number"], "unique"),
                       ("facility", ["facility_id"], "key")],
     "cameras": [("facility", ["facility_id"], "key")],
-    "occupancy_snapshots": [("facility", ["facility_id"], "key")],
-    "monitoring_logs": [("facility", ["facility_id"], "key")],
+    "occupancy_snapshots": [("facility", ["facility_id"], "key"), ("facility_recent", ["facility_id", "captured_at"], "key")],
+    "monitoring_logs": [("facility", ["facility_id"], "key"), ("facility_recent", ["facility_id", "created_at"], "key")],
     "parking_lot_submissions": [("submitter", ["submitted_by_admin_id"], "key")],
 }
 

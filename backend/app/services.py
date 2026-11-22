@@ -46,6 +46,7 @@ def facility_to_summary(db: Session, facility: models.Facility) -> FacilitySumma
         occupied_slots=occupied,
         occupancy_percentage=percentage,
         updated_at=latest_facility_update(db, facility.id),
+        slot_count=db.scalar(select(func.count(models.ParkingSlot.id)).where(models.ParkingSlot.facility_id == facility.id)) or 0,
     )
 
 

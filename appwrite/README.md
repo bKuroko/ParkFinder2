@@ -81,7 +81,14 @@ Restart Expo/Vite after changing environment values. Keep the YOLO API key only 
 
 ## Current scope and limitations
 
+- **Parking Lots** gives owners CRUD for their own lots and unapproved requests. The super admin views lots and approves/rejects requests; direct creation, editing, deletion, and ownership changes are forbidden for the super admin.
+- **Users** gives the super admin account deletion. Deletion is blocked while an account still manages active lots. Deletion removes login access and hides the account while preserving historical relationships. Existing deleted email addresses remain reserved.
+- Before deploying this version, rerun the schema script (or add optional boolean `is_deleted` columns to `facilities`, `admin_users`, and `parking_lot_submissions`). Existing rows need no data migration. Slot capacity edits are restricted once slots are configured to preserve monitoring records and CCTV calibration.
+
 - The Appwrite Function preserves the current driver, admin, and YOLO REST routes so the clients can be switched by configuration.
 - Admin login remains the project's existing password-hash/JWT flow stored in the `admin_users` table. Appwrite Auth migration can be done later.
+- Parking owners can register through `POST /api/v1/auth/register`. Their account remains inactive until a super admin approves or rejects it from **Users**. Account roles are explicit so a new owner without an assigned facility cannot be treated as a super admin.
+- After registration approval, the owner signs in and submits a parking lot through **Parking Lots**. That facility request still has its existing separate super-admin approval step.
+- Run `python appwrite/scripts/bootstrap_appwrite.py` after pulling this change so existing Appwrite `admin_users` tables receive the optional `role` and `approval_status` columns before deploying the updated Function.
 - Appwrite's Function HTTP domain has a short synchronous execution limit. This API stores small status updates and returns quickly; video processing remains local.
 - SQL rows are not synchronized automatically after migration. Once switched, Appwrite is the cloud source of truth; local PostgreSQL remains available for development.

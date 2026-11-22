@@ -26,7 +26,7 @@ def ingest_slot_status(
     _: None = Depends(require_ai_api_key),
 ) -> dict[str, object]:
     facility = db.get(models.Facility, payload.facility_id)
-    if not facility:
+    if not facility or facility.is_deleted:
         raise HTTPException(status_code=404, detail="Facility not found")
 
     now = datetime.now(timezone.utc)

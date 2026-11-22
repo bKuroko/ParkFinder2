@@ -199,11 +199,15 @@ def seed() -> None:
                 full_name="Montero Parking Admin",
                 hashed_password=get_password_hash("admin123"),
                 facility_id=facility.id,
+                account_role="facility_admin",
+                account_approval_status="approved",
             )
             db.add(admin)
         else:
             admin.full_name = "Montero Parking Admin"
             admin.facility_id = facility.id
+            admin.account_role = "facility_admin"
+            admin.account_approval_status = "approved"
 
         super_admin = (
             db.query(models.AdminUser)
@@ -216,12 +220,16 @@ def seed() -> None:
                 full_name="ParkFinder Super Admin",
                 hashed_password=get_password_hash("superadmin123"),
                 facility_id=None,
+                account_role="super_admin",
+                account_approval_status="approved",
             )
             db.add(super_admin)
         else:
             super_admin.full_name = "ParkFinder Super Admin"
             super_admin.facility_id = None
             super_admin.is_active = True
+            super_admin.account_role = "super_admin"
+            super_admin.account_approval_status = "approved"
 
         facilities_by_code = {facility.facility_code: facility}
         for spec in VERIFIED_CDO_FACILITIES:
@@ -299,12 +307,16 @@ def seed() -> None:
                 full_name="CDO Three-Lot Admin",
                 hashed_password=get_password_hash("cluster3admin"),
                 facility_id=verified_facilities[0].id,
+                account_role="facility_admin",
+                account_approval_status="approved",
             )
             db.add(three_lot_admin)
         else:
             three_lot_admin.full_name = "CDO Three-Lot Admin"
             three_lot_admin.facility_id = verified_facilities[0].id
             three_lot_admin.is_active = True
+            three_lot_admin.account_role = "facility_admin"
+            three_lot_admin.account_approval_status = "approved"
         three_lot_admin.assigned_facilities = verified_facilities[:3]
 
         five_lot_admin = (
@@ -318,12 +330,16 @@ def seed() -> None:
                 full_name="CDO Five-Lot Admin",
                 hashed_password=get_password_hash("cluster5admin"),
                 facility_id=verified_facilities[3].id,
+                account_role="facility_admin",
+                account_approval_status="approved",
             )
             db.add(five_lot_admin)
         else:
             five_lot_admin.full_name = "CDO Five-Lot Admin"
             five_lot_admin.facility_id = verified_facilities[3].id
             five_lot_admin.is_active = True
+            five_lot_admin.account_role = "facility_admin"
+            five_lot_admin.account_approval_status = "approved"
         five_lot_admin.assigned_facilities = verified_facilities[3:]
 
         existing_history = (

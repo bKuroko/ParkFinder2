@@ -12,6 +12,7 @@ import { Ionicons } from "@expo/vector-icons";
 
 import { getCachedFacilities, getFacility, searchFacilities } from "../api/client";
 import OpenLayersMap from "../components/OpenLayersMap";
+import { getOccupancyStatus } from "../utils/occupancy";
 
 const REFRESH_MS = 5000;
 
@@ -246,7 +247,7 @@ export default function FacilityMapScreen({ onSelectFacility }) {
                 <View style={styles.facilityCopy}>
                   <Text style={styles.facilityName} numberOfLines={1}>{facility.name}</Text>
                   <Text style={styles.facilityAddress} numberOfLines={1}>{facilityAddress(facility)}</Text>
-                  <Text style={styles.availableText}>{availableSlotText(facility)}</Text>
+                  <Text style={[styles.availableText, { color: getOccupancyStatus(facility).textColor }]}>{availableSlotText(facility)}</Text>
                 </View>
                 <Ionicons name="chevron-forward" size={22} color="#172033" />
               </Pressable>
@@ -267,7 +268,7 @@ export default function FacilityMapScreen({ onSelectFacility }) {
               <Ionicons name="close" size={22} color="#172033" />
             </Pressable>
           </View>
-          <Text style={styles.availableValue}>{availableSlotText(selectedFacility)}</Text>
+          <Text style={[styles.availableValue, { color: getOccupancyStatus(selectedFacility).textColor }]}>{availableSlotText(selectedFacility)}</Text>
           <View style={styles.selectedHeader}>
             <View style={styles.facilityIcon}>
               <Text style={styles.facilityIconText}>P</Text>

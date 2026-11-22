@@ -50,6 +50,13 @@ export async function login(email, password) {
   return data;
 }
 
+export function registerAdmin(payload) {
+  return request("/auth/register", {
+    method: "POST",
+    body: JSON.stringify(payload)
+  });
+}
+
 function facilityPath(path, facilityId) {
   if (facilityId === null || facilityId === undefined) {
     return path;
@@ -61,8 +68,40 @@ export function getAdminFacilities() {
   return request("/admin/facilities");
 }
 
+export function createParkingLot(payload) {
+  return request("/admin/facilities", { method: "POST", body: JSON.stringify(payload) });
+}
+
+export function updateParkingLot(id, payload) {
+  return request(`/admin/facilities/${id}`, { method: "PATCH", body: JSON.stringify(payload) });
+}
+
+export function deleteParkingLot(id) {
+  return request(`/admin/facilities/${id}`, { method: "DELETE" });
+}
+
+export function updateParkingLotRequest(id, payload) {
+  return request(`/admin/parking-lot-submissions/${id}`, { method: "PATCH", body: JSON.stringify(payload) });
+}
+
+export function deleteParkingLotRequest(id) {
+  return request(`/admin/parking-lot-submissions/${id}`, { method: "DELETE" });
+}
+
+export function deleteAdminUser(id) {
+  return request(`/admin/users/${id}`, { method: "DELETE" });
+}
+
 export function getAdminUsers() {
   return request("/admin/users");
+}
+
+export function approveAdminUser(adminId) {
+  return request(`/admin/users/${adminId}/approve`, { method: "POST" });
+}
+
+export function rejectAdminUser(adminId) {
+  return request(`/admin/users/${adminId}/reject`, { method: "POST" });
 }
 
 export function getParkingLotSubmissions() {

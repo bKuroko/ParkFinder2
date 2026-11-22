@@ -5,6 +5,7 @@ from app import models
 from app.api.routes import admin, auth, ingest, public
 from app.core.config import get_settings
 from app.db.base import Base
+from app.db.account_migration import migrate_account_fields
 from app.db.session import engine
 
 
@@ -29,6 +30,8 @@ app.add_middleware(
 def on_startup() -> None:
     if settings.create_tables_on_start:
         Base.metadata.create_all(bind=engine)
+        # create_all does not add columns to an existing PostgreSQL table.
+        migrate_account_fields(engine)
 
 
 @app.get("/health")

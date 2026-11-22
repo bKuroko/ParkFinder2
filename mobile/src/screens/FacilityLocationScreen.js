@@ -4,6 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 
 import { getCachedFacility, getFacility } from "../api/client";
 import OpenLayersMap from "../components/OpenLayersMap";
+import { getOccupancyStatus } from "../utils/occupancy";
 
 const LIVE_REFRESH_MS = 5000;
 
@@ -98,6 +99,8 @@ export default function FacilityLocationScreen({ facilityId, onBack }) {
     );
   }
 
+  const occupancy = getOccupancyStatus(facility);
+
   return (
     <View style={styles.screen}>
       <OpenLayersMap
@@ -143,14 +146,14 @@ export default function FacilityLocationScreen({ facilityId, onBack }) {
 
         <View style={styles.metrics}>
           <View>
-            <Text style={styles.metricValue}>
+            <Text style={[styles.metricValue, { color: occupancy.textColor }]}>
               {facility.available_slots}
               <Text style={styles.metricTotal}> / {facility.total_slots}</Text>
             </Text>
             <Text style={styles.metricLabel}>Available Slots</Text>
           </View>
           <View style={styles.circle}>
-            <Text style={styles.circleText}>{facility.occupancy_percentage}%</Text>
+            <Text style={[styles.circleText, { borderColor: occupancy.color }]}>{facility.occupancy_percentage}%</Text>
             <Text style={styles.metricLabel}>Occupied</Text>
           </View>
         </View>

@@ -1,0 +1,109 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="842" height="595" viewBox="0 0 842 595">
+<rect x="0" y="0" width="842" height="595" rx="0" fill="#FFFFFF" stroke="none"/>
+<text x="32" y="41" font-family="Arial, sans-serif" font-size="21" font-weight="700" fill="#0F172A" text-anchor="start">PARKFINDER PROJECT SCHEDULE</text>
+<text x="32" y="60" font-family="Arial, sans-serif" font-size="10" font-weight="400" fill="#64748B" text-anchor="start">Proposed activity timeline | January-December 2026</text>
+<rect x="32" y="78" width="13" height="7" rx="2" fill="#2563EB" stroke="none"/>
+<text x="51" y="86" font-family="Arial, sans-serif" font-size="8" font-weight="400" fill="#334155" text-anchor="start">Concept stage</text>
+<rect x="159" y="78" width="13" height="7" rx="2" fill="#0F766E" stroke="none"/>
+<text x="178" y="86" font-family="Arial, sans-serif" font-size="8" font-weight="400" fill="#334155" text-anchor="start">Proposal stage</text>
+<rect x="284" y="78" width="13" height="7" rx="2" fill="#B45309" stroke="none"/>
+<text x="303" y="86" font-family="Arial, sans-serif" font-size="8" font-weight="400" fill="#334155" text-anchor="start">Development and final stage</text>
+<polygon points="507,77 511,81 507,85 503,81" fill="#0F172A" stroke="#FFFFFF" stroke-width=".8"/>
+<text x="518" y="86" font-family="Arial, sans-serif" font-size="8" font-weight="400" fill="#334155" text-anchor="start">Defense milestone</text>
+<rect x="32" y="100" width="778" height="22" rx="0" fill="#0F172A" stroke="none"/>
+<text x="43" y="115" font-family="Arial, sans-serif" font-size="8.5" font-weight="700" fill="#FFFFFF" text-anchor="start">ACTIVITY / MILESTONE</text>
+<text x="298.6767123287671" y="115" font-family="Arial, sans-serif" font-size="8" font-weight="700" fill="#FFFFFF" text-anchor="middle">JAN</text>
+<text x="341.83561643835617" y="115" font-family="Arial, sans-serif" font-size="8" font-weight="700" fill="#FFFFFF" text-anchor="middle">FEB</text>
+<text x="384.9945205479452" y="115" font-family="Arial, sans-serif" font-size="8" font-weight="700" fill="#FFFFFF" text-anchor="middle">MAR</text>
+<text x="429.6164383561644" y="115" font-family="Arial, sans-serif" font-size="8" font-weight="700" fill="#FFFFFF" text-anchor="middle">APR</text>
+<text x="474.23835616438356" y="115" font-family="Arial, sans-serif" font-size="8" font-weight="700" fill="#FFFFFF" text-anchor="middle">MAY</text>
+<text x="518.8602739726027" y="115" font-family="Arial, sans-serif" font-size="8" font-weight="700" fill="#FFFFFF" text-anchor="middle">JUN</text>
+<text x="563.482191780822" y="115" font-family="Arial, sans-serif" font-size="8" font-weight="700" fill="#FFFFFF" text-anchor="middle">JUL</text>
+<text x="608.8356164383562" y="115" font-family="Arial, sans-serif" font-size="8" font-weight="700" fill="#FFFFFF" text-anchor="middle">AUG</text>
+<text x="653.4575342465754" y="115" font-family="Arial, sans-serif" font-size="8" font-weight="700" fill="#FFFFFF" text-anchor="middle">SEP</text>
+<text x="698.0794520547945" y="115" font-family="Arial, sans-serif" font-size="8" font-weight="700" fill="#FFFFFF" text-anchor="middle">OCT</text>
+<text x="742.7013698630137" y="115" font-family="Arial, sans-serif" font-size="8" font-weight="700" fill="#FFFFFF" text-anchor="middle">NOV</text>
+<text x="787.323287671233" y="115" font-family="Arial, sans-serif" font-size="8" font-weight="700" fill="#FFFFFF" text-anchor="middle">DEC</text>
+<rect x="32" y="122" width="778" height="20" rx="0" fill="#EFF6FF" stroke="none"/>
+<line x1="32" y1="142" x2="810" y2="142" stroke="#E2E8F0" stroke-width="0.5" />
+<rect x="32" y="142" width="778" height="20" rx="0" fill="#F8FAFC" stroke="none"/>
+<line x1="32" y1="162" x2="810" y2="162" stroke="#E2E8F0" stroke-width="0.5" />
+<line x1="32" y1="182" x2="810" y2="182" stroke="#E2E8F0" stroke-width="0.5" />
+<rect x="32" y="182" width="778" height="20" rx="0" fill="#F8FAFC" stroke="none"/>
+<line x1="32" y1="202" x2="810" y2="202" stroke="#E2E8F0" stroke-width="0.5" />
+<line x1="32" y1="222" x2="810" y2="222" stroke="#E2E8F0" stroke-width="0.5" />
+<rect x="32" y="222" width="778" height="20" rx="0" fill="#F8FAFC" stroke="none"/>
+<line x1="32" y1="242" x2="810" y2="242" stroke="#E2E8F0" stroke-width="0.5" />
+<rect x="32" y="242" width="778" height="20" rx="0" fill="#F0FDFA" stroke="none"/>
+<line x1="32" y1="262" x2="810" y2="262" stroke="#E2E8F0" stroke-width="0.5" />
+<rect x="32" y="262" width="778" height="20" rx="0" fill="#F8FAFC" stroke="none"/>
+<line x1="32" y1="282" x2="810" y2="282" stroke="#E2E8F0" stroke-width="0.5" />
+<line x1="32" y1="302" x2="810" y2="302" stroke="#E2E8F0" stroke-width="0.5" />
+<rect x="32" y="302" width="778" height="20" rx="0" fill="#F8FAFC" stroke="none"/>
+<line x1="32" y1="322" x2="810" y2="322" stroke="#E2E8F0" stroke-width="0.5" />
+<line x1="32" y1="342" x2="810" y2="342" stroke="#E2E8F0" stroke-width="0.5" />
+<rect x="32" y="342" width="778" height="20" rx="0" fill="#FFFBEB" stroke="none"/>
+<line x1="32" y1="362" x2="810" y2="362" stroke="#E2E8F0" stroke-width="0.5" />
+<line x1="32" y1="382" x2="810" y2="382" stroke="#E2E8F0" stroke-width="0.5" />
+<rect x="32" y="382" width="778" height="20" rx="0" fill="#F8FAFC" stroke="none"/>
+<line x1="32" y1="402" x2="810" y2="402" stroke="#E2E8F0" stroke-width="0.5" />
+<line x1="32" y1="422" x2="810" y2="422" stroke="#E2E8F0" stroke-width="0.5" />
+<rect x="32" y="422" width="778" height="20" rx="0" fill="#F8FAFC" stroke="none"/>
+<line x1="32" y1="442" x2="810" y2="442" stroke="#E2E8F0" stroke-width="0.5" />
+<line x1="32" y1="462" x2="810" y2="462" stroke="#E2E8F0" stroke-width="0.5" />
+<line x1="276.0" y1="462" x2="276.0" y2="122" stroke="#E2E8F0" stroke-width="0.5" />
+<line x1="321.3534246575342" y1="462" x2="321.3534246575342" y2="122" stroke="#E2E8F0" stroke-width="0.5" />
+<line x1="362.3178082191781" y1="462" x2="362.3178082191781" y2="122" stroke="#E2E8F0" stroke-width="0.5" />
+<line x1="407.67123287671234" y1="462" x2="407.67123287671234" y2="122" stroke="#E2E8F0" stroke-width="0.5" />
+<line x1="451.56164383561645" y1="462" x2="451.56164383561645" y2="122" stroke="#E2E8F0" stroke-width="0.5" />
+<line x1="496.91506849315067" y1="462" x2="496.91506849315067" y2="122" stroke="#E2E8F0" stroke-width="0.5" />
+<line x1="540.8054794520548" y1="462" x2="540.8054794520548" y2="122" stroke="#E2E8F0" stroke-width="0.5" />
+<line x1="586.158904109589" y1="462" x2="586.158904109589" y2="122" stroke="#E2E8F0" stroke-width="0.5" />
+<line x1="631.5123287671233" y1="462" x2="631.5123287671233" y2="122" stroke="#E2E8F0" stroke-width="0.5" />
+<line x1="675.4027397260274" y1="462" x2="675.4027397260274" y2="122" stroke="#E2E8F0" stroke-width="0.5" />
+<line x1="720.7561643835617" y1="462" x2="720.7561643835617" y2="122" stroke="#E2E8F0" stroke-width="0.5" />
+<line x1="764.6465753424658" y1="462" x2="764.6465753424658" y2="122" stroke="#E2E8F0" stroke-width="0.5" />
+<line x1="810" y1="462" x2="810" y2="122" stroke="#E2E8F0" stroke-width="0.5" />
+<line x1="32" y1="462" x2="32" y2="122" stroke="#E2E8F0" stroke-width="0.5" />
+<line x1="450.0986301369863" y1="462" x2="450.0986301369863" y2="122" stroke="#94A3B8" stroke-width="0.6" stroke-dasharray="2 3"/>
+<line x1="498.37808219178083" y1="462" x2="498.37808219178083" y2="122" stroke="#94A3B8" stroke-width="0.6" stroke-dasharray="2 3"/>
+<line x1="764.6465753424658" y1="462" x2="764.6465753424658" y2="122" stroke="#94A3B8" stroke-width="0.6" stroke-dasharray="2 3"/>
+<text x="43" y="135" font-family="Arial, sans-serif" font-size="8.2" font-weight="700" fill="#2563EB" text-anchor="start">01  CONCEPT PRESENTATION</text>
+<text x="43" y="155" font-family="Arial, sans-serif" font-size="8.4" font-weight="400" fill="#0F172A" text-anchor="start">Initial research and topic refinement</text>
+<rect x="281.85205479452054" y="147" width="79.00273972602741" height="10" rx="2" fill="#2563EB" stroke="none"/>
+<text x="43" y="175" font-family="Arial, sans-serif" font-size="8.4" font-weight="400" fill="#0F172A" text-anchor="start">Chapter 1: Introduction</text>
+<rect x="302.3342465753425" y="167" width="89.24383561643833" height="10" rx="2" fill="#2563EB" stroke="none"/>
+<text x="43" y="195" font-family="Arial, sans-serif" font-size="8.4" font-weight="400" fill="#0F172A" text-anchor="start">Chapter 2: Related literature</text>
+<rect x="322.8164383561644" y="187" width="99.4849315068493" height="10" rx="2" fill="#2563EB" stroke="none"/>
+<text x="43" y="215" font-family="Arial, sans-serif" font-size="8.4" font-weight="400" fill="#0F172A" text-anchor="start">Review and preparation: Chapters 1-2</text>
+<rect x="425.22739726027396" y="207" width="24.871232876712327" height="10" rx="2" fill="#2563EB" stroke="none"/>
+<text x="43" y="235" font-family="Arial, sans-serif" font-size="8.4" font-weight="700" fill="#0F172A" text-anchor="start">Concept Presentation Defense</text>
+<polygon points="450.0986301369863,227.5 454.5986301369863,232 450.0986301369863,236.5 445.5986301369863,232" fill="#0F172A" stroke="#FFFFFF" stroke-width=".8"/>
+<text x="459.0986301369863" y="235" font-family="Arial, sans-serif" font-size="8" font-weight="700" fill="#0F172A" text-anchor="start">Apr 30, 2026</text>
+<text x="43" y="255" font-family="Arial, sans-serif" font-size="8.2" font-weight="700" fill="#0F766E" text-anchor="start">02  PROJECT PROPOSAL</text>
+<text x="43" y="275" font-family="Arial, sans-serif" font-size="8.4" font-weight="400" fill="#0F172A" text-anchor="start">System wireframe and interface planning</text>
+<rect x="451.56164383561645" y="267" width="32.18630136986303" height="10" rx="2" fill="#0F766E" stroke="none"/>
+<text x="43" y="295" font-family="Arial, sans-serif" font-size="8.4" font-weight="400" fill="#0F172A" text-anchor="start">Chapter 3: Methodology</text>
+<rect x="455.9506849315069" y="287" width="27.797260273972597" height="10" rx="2" fill="#0F766E" stroke="none"/>
+<text x="43" y="315" font-family="Arial, sans-serif" font-size="8.4" font-weight="400" fill="#0F172A" text-anchor="start">Revisions: Chapters 1-3</text>
+<rect x="476.4328767123288" y="307" width="21.945205479452056" height="10" rx="2" fill="#0F766E" stroke="none"/>
+<text x="43" y="335" font-family="Arial, sans-serif" font-size="8.4" font-weight="700" fill="#0F172A" text-anchor="start">Project Proposal Defense</text>
+<polygon points="498.37808219178083,327.5 502.87808219178083,332 498.37808219178083,336.5 493.87808219178083,332" fill="#0F172A" stroke="#FFFFFF" stroke-width=".8"/>
+<text x="507.37808219178083" y="335" font-family="Arial, sans-serif" font-size="8" font-weight="700" fill="#0F172A" text-anchor="start">Jun 2, 2026</text>
+<text x="43" y="355" font-family="Arial, sans-serif" font-size="8.2" font-weight="700" fill="#B45309" text-anchor="start">03  DEVELOPMENT AND FINAL DEFENSE</text>
+<text x="43" y="375" font-family="Arial, sans-serif" font-size="8.4" font-weight="400" fill="#0F172A" text-anchor="start">System development and integration</text>
+<rect x="499.841095890411" y="367" width="175.56164383561645" height="10" rx="2" fill="#B45309" stroke="none"/>
+<text x="43" y="395" font-family="Arial, sans-serif" font-size="8.4" font-weight="400" fill="#0F172A" text-anchor="start">Testing, SUS evaluation, and refinement</text>
+<rect x="675.4027397260274" y="387" width="64.37260273972595" height="10" rx="2" fill="#B45309" stroke="none"/>
+<text x="43" y="415" font-family="Arial, sans-serif" font-size="8.4" font-weight="400" fill="#0F172A" text-anchor="start">Documentation: Chapters 4-5</text>
+<rect x="701.7369863013698" y="407" width="48.27945205479455" height="10" rx="2" fill="#B45309" stroke="none"/>
+<text x="43" y="435" font-family="Arial, sans-serif" font-size="8.4" font-weight="400" fill="#0F172A" text-anchor="start">Final revisions and presentation preparation</text>
+<rect x="752.9424657534246" y="427" width="11.704109589041195" height="10" rx="2" fill="#B45309" stroke="none"/>
+<text x="43" y="455" font-family="Arial, sans-serif" font-size="8.4" font-weight="700" fill="#0F172A" text-anchor="start">Final Defense</text>
+<polygon points="764.6465753424658,447.5 769.1465753424658,452 764.6465753424658,456.5 760.1465753424658,452" fill="#0F172A" stroke="#FFFFFF" stroke-width=".8"/>
+<text x="773.6465753424658" y="455" font-family="Arial, sans-serif" font-size="8" font-weight="700" fill="#0F172A" text-anchor="start">Dec 1, 2026</text>
+<text x="421.0" y="487" font-family="Arial, sans-serif" font-size="11" font-weight="700" fill="#0F172A" text-anchor="middle">Figure 1. Gantt Chart</text>
+<text x="32" y="510" font-family="Arial, sans-serif" font-size="8.4" font-weight="400" fill="#334155" text-anchor="start">Defense dates: April 30, 2026 | June 2, 2026 | December 1, 2026.</text>
+<text x="32" y="525" font-family="Arial, sans-serif" font-size="8.4" font-weight="400" fill="#64748B" text-anchor="start">Activity dates and durations are proposed planning estimates, not a record of completed work.</text>
+<text x="32" y="540" font-family="Arial, sans-serif" font-size="8.4" font-weight="400" fill="#64748B" text-anchor="start">All three defense dates are shown in 2026; the January start is an assumed planning baseline.</text>
+</svg>

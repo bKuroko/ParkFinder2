@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
+from pydantic import ValidationError
 
 from app import models
 from app.api.deps import get_current_admin, require_facility_access, require_super_admin
@@ -12,14 +13,110 @@ from app.schemas import (
     AdminProfile,
     DashboardResponse,
     FacilitySummary,
+    FacilityDetail,
+    FacilityCreate,
+    FacilityUpdate,
     MonitoringLogItem,
     ParkingLotSubmissionCreate,
     ParkingLotSubmissionItem,
 )
-from app.services import create_occupancy_snapshot, facility_to_summary
+from app.services import create_occupancy_snapshot, facility_to_summary, facility_to_detail
 
 
 router = APIRouter(prefix="/admin", tags=["admin"])
+
+
+def _active_facility(db: Session, facility_id: int) -> models.Facility:
+    facility = db.get(models.Facility, facility_id)
+    if not facility or facility.is_deleted:
+        raise HTTPException(status_code=404, detail="Facility not found")
+    return facility
+
+
+def _lot_values(data: dict) -> dict:
+    try:
+        values = ParkingLotSubmissionCreate.model_validate(data).model_dump()
+        values["name"] = values["name"].strip()
+        values["address"] = values["address"].strip()
+        return ParkingLotSubmissionCreate.model_validate(values).model_dump()
+    except ValidationError as exc:
+        raise HTTPException(status_code=422, detail="Enter a valid name, address, coordinates, and slot capacity") from exc
+
+
+def _owner(db: Session, owner_id: int) -> models.AdminUser:
+    owner = db.get(models.AdminUser, owner_id)
+    if not owner or owner.is_deleted or not owner.is_active or owner.is_super_admin or owner.approval_status != "approved":
+        raise HTTPException(status_code=422, detail="Select an active, approved parking owner")
+    return owner
+
+
+def _ensure_unique_name(db: Session, name: str, exclude_id: int | None = None) -> None:
+    statement = select(models.Facility).where(models.Facility.is_deleted.is_(False), func.lower(models.Facility.name) == name.lower())
+    if exclude_id is not None:
+        statement = statement.where(models.Facility.id != exclude_id)
+    if db.scalar(statement):
+        raise HTTPException(status_code=409, detail="A facility with this name already exists")
+
+
+@router.post("/facilities", response_model=FacilitySummary, status_code=201)
+def create_facility(payload: FacilityCreate, db: Session = Depends(get_db), _: models.AdminUser = Depends(get_current_admin)):
+    raise HTTPException(status_code=403, detail="Parking lots must be submitted by their owner for approval")
+
+
+@router.patch("/facilities/{facility_id}", response_model=FacilitySummary)
+def update_facility(facility_id: int, payload: FacilityUpdate, db: Session = Depends(get_db), current_admin: models.AdminUser = Depends(get_current_admin)):
+    if current_admin.is_super_admin:
+        raise HTTPException(status_code=403, detail="Only the assigned parking owner can edit or delete this lot")
+    require_facility_access(current_admin, facility_id)
+    facility = _active_facility(db, facility_id)
+    changes = payload.model_dump(exclude_unset=True)
+    if "owner_id" in changes:
+        raise HTTPException(status_code=403, detail="Parking lot ownership cannot be changed here")
+    fields = _lot_values({**{key: getattr(facility, key) for key in ("name", "address", "latitude", "longitude", "total_slots")}, **changes})
+    _ensure_unique_name(db, fields["name"], facility.id)
+    has_slots = db.scalar(select(models.ParkingSlot.id).where(models.ParkingSlot.facility_id == facility.id).limit(1))
+    if has_slots and fields["total_slots"] != facility.total_slots:
+        raise HTTPException(status_code=409, detail="This lot has configured parking slots. Change its slot configuration before changing capacity.")
+    for key, value in fields.items():
+        setattr(facility, key, value)
+    db.commit()
+    return facility_to_summary(db, facility)
+
+
+@router.get("/facilities/{facility_id}", response_model=FacilityDetail)
+def read_admin_facility(facility_id: int, db: Session = Depends(get_db), current_admin: models.AdminUser = Depends(get_current_admin)):
+    require_facility_access(current_admin, facility_id)
+    return facility_to_detail(db, _active_facility(db, facility_id))
+
+
+@router.delete("/facilities/{facility_id}")
+def delete_facility(facility_id: int, db: Session = Depends(get_db), current_admin: models.AdminUser = Depends(get_current_admin)):
+    if current_admin.is_super_admin:
+        raise HTTPException(status_code=403, detail="Only the assigned parking owner can edit or delete this lot")
+    require_facility_access(current_admin, facility_id)
+    facility = _active_facility(db, facility_id)
+    facility.is_deleted = True
+    db.commit()
+    return {"message": "Parking lot deleted. Monitoring history has been retained."}
+
+
+@router.delete("/users/{admin_id}")
+def delete_admin_user(admin_id: int, db: Session = Depends(get_db), current_admin: models.AdminUser = Depends(require_super_admin)):
+    account = db.get(models.AdminUser, admin_id)
+    if not account or account.is_deleted:
+        raise HTTPException(status_code=404, detail="Account not found")
+    if account.id == current_admin.id:
+        raise HTTPException(status_code=409, detail="You cannot delete your signed-in account")
+    if account.is_super_admin and not any(a.id != account.id and a.is_super_admin and a.is_active and a.approval_status == "approved"
+            for a in db.scalars(select(models.AdminUser).where(models.AdminUser.is_deleted.is_(False))).all()):
+        raise HTTPException(status_code=409, detail="The last active super admin cannot be deleted")
+    if db.scalar(select(models.Facility.id).where(models.Facility.id.in_(account.facility_ids), models.Facility.is_deleted.is_(False)).limit(1)):
+        raise HTTPException(status_code=409, detail="This account still manages active parking lots. The owner must remove those lots before the account can be deleted.")
+    account.account_role = account.role
+    account.is_deleted = True
+    account.is_active = False
+    db.commit()
+    return {"message": "Account deleted. Login access removed; parking history retained."}
 
 
 @router.post("/facilities/{facility_id}/slots/count")
@@ -33,9 +130,7 @@ def adjust_slot_count(
     direction = payload.get("direction")
     if direction not in {"in", "out"}:
         raise HTTPException(status_code=422, detail="direction must be 'in' or 'out'")
-    facility = db.get(models.Facility, facility_id)
-    if facility is None:
-        raise HTTPException(status_code=404, detail="Facility not found")
+    facility = _active_facility(db, facility_id)
     slots = list(db.scalars(select(models.ParkingSlot).where(models.ParkingSlot.facility_id == facility_id).order_by(models.ParkingSlot.slot_number)).all())
     if not slots:
         slots = [models.ParkingSlot(facility_id=facility_id, slot_number=f"MANUAL-{i:04d}", polygon=[], is_occupied=False, confidence=0) for i in range(1, facility.total_slots + 1)]
@@ -84,7 +179,7 @@ def _submission_item(
 
 def _pending_submission(db: Session, submission_id: int) -> models.ParkingLotSubmission:
     submission = db.get(models.ParkingLotSubmission, submission_id)
-    if submission is None:
+    if submission is None or submission.is_deleted:
         raise HTTPException(status_code=404, detail="Parking lot submission not found")
     if submission.status != "pending":
         raise HTTPException(status_code=409, detail="Parking lot submission was already reviewed")
@@ -120,7 +215,7 @@ def list_admin_facilities(
     db: Session = Depends(get_db),
     current_admin: models.AdminUser = Depends(get_current_admin),
 ) -> list[FacilitySummary]:
-    statement = select(models.Facility).order_by(models.Facility.name)
+    statement = select(models.Facility).where(models.Facility.is_deleted.is_(False)).order_by(models.Facility.name)
     if not current_admin.is_super_admin:
         statement = statement.where(models.Facility.id.in_(current_admin.facility_ids))
     facilities = db.scalars(statement).all()
@@ -132,7 +227,39 @@ def list_admin_users(
     db: Session = Depends(get_db),
     _: models.AdminUser = Depends(require_super_admin),
 ) -> list[models.AdminUser]:
-    return list(db.scalars(select(models.AdminUser).order_by(models.AdminUser.full_name)).all())
+    return list(db.scalars(select(models.AdminUser).where(models.AdminUser.is_deleted.is_(False)).order_by(models.AdminUser.full_name)).all())
+
+
+def _review_account(admin_id: int, approved: bool, db: Session) -> models.AdminUser:
+    account = db.get(models.AdminUser, admin_id)
+    if account is None or account.is_deleted:
+        raise HTTPException(status_code=404, detail="Account not found")
+    if account.approval_status != "pending":
+        raise HTTPException(status_code=409, detail="Account registration was already reviewed")
+    account.account_role = "facility_admin"
+    account.account_approval_status = "approved" if approved else "rejected"
+    account.is_active = approved
+    db.commit()
+    db.refresh(account)
+    return account
+
+
+@router.post("/users/{admin_id}/approve", response_model=AdminProfile)
+def approve_admin_user(
+    admin_id: int,
+    db: Session = Depends(get_db),
+    _: models.AdminUser = Depends(require_super_admin),
+) -> models.AdminUser:
+    return _review_account(admin_id, True, db)
+
+
+@router.post("/users/{admin_id}/reject", response_model=AdminProfile)
+def reject_admin_user(
+    admin_id: int,
+    db: Session = Depends(get_db),
+    _: models.AdminUser = Depends(require_super_admin),
+) -> models.AdminUser:
+    return _review_account(admin_id, False, db)
 
 
 @router.get("/parking-lot-submissions", response_model=list[ParkingLotSubmissionItem])
@@ -140,7 +267,13 @@ def list_parking_lot_submissions(
     db: Session = Depends(get_db),
     current_admin: models.AdminUser = Depends(get_current_admin),
 ) -> list[ParkingLotSubmissionItem]:
-    statement = select(models.ParkingLotSubmission).order_by(
+    active_admins = select(models.AdminUser.id).where(models.AdminUser.is_deleted.is_(False))
+    active_facilities = select(models.Facility.id).where(models.Facility.is_deleted.is_(False))
+    statement = select(models.ParkingLotSubmission).where(
+        models.ParkingLotSubmission.is_deleted.is_(False),
+        models.ParkingLotSubmission.submitted_by_admin_id.in_(active_admins),
+        (models.ParkingLotSubmission.facility_id.is_(None)) | models.ParkingLotSubmission.facility_id.in_(active_facilities),
+    ).order_by(
         models.ParkingLotSubmission.submitted_at.desc()
     )
     if not current_admin.is_super_admin:
@@ -168,11 +301,7 @@ def create_parking_lot_submission(
         )
 
     submission = models.ParkingLotSubmission(
-        name=payload.name.strip(),
-        address=payload.address.strip(),
-        latitude=payload.latitude,
-        longitude=payload.longitude,
-        total_slots=payload.total_slots,
+        **_lot_values(payload.model_dump()),
         status="pending",
         submitted_by_admin_id=current_admin.id,
     )
@@ -180,6 +309,42 @@ def create_parking_lot_submission(
     db.commit()
     db.refresh(submission)
     return _submission_item(db, submission)
+
+
+@router.patch("/parking-lot-submissions/{submission_id}", response_model=ParkingLotSubmissionItem)
+def update_parking_lot_submission(submission_id: int, payload: FacilityUpdate, db: Session = Depends(get_db), current_admin: models.AdminUser = Depends(get_current_admin)):
+    submission = db.get(models.ParkingLotSubmission, submission_id)
+    _manage_request(submission, current_admin)
+    fields = {key: getattr(submission, key) for key in ("name", "address", "latitude", "longitude", "total_slots")}
+    changes = payload.model_dump(exclude_unset=True, exclude={"owner_id"})
+    for key, value in _lot_values({**fields, **changes}).items():
+        setattr(submission, key, value)
+    submission.status = "pending"
+    submission.reviewed_at = None
+    submission.reviewed_by_admin_id = None
+    submission.submitted_at = datetime.now(timezone.utc)
+    db.commit()
+    return _submission_item(db, submission)
+
+
+def _manage_request(submission, admin) -> None:
+    if admin.is_super_admin:
+        raise HTTPException(status_code=403, detail="Only the submitting owner can edit or delete a parking lot request")
+    if not submission or submission.is_deleted:
+        raise HTTPException(status_code=404, detail="Parking lot request not found")
+    if not admin.is_super_admin and submission.submitted_by_admin_id != admin.id:
+        raise HTTPException(status_code=403, detail="You cannot manage another owner's parking lot request")
+    if submission.status == "approved":
+        raise HTTPException(status_code=409, detail="Manage the approved parking lot in the facility list")
+
+
+@router.delete("/parking-lot-submissions/{submission_id}")
+def delete_parking_lot_submission(submission_id: int, db: Session = Depends(get_db), current_admin: models.AdminUser = Depends(get_current_admin)):
+    submission = db.get(models.ParkingLotSubmission, submission_id)
+    _manage_request(submission, current_admin)
+    submission.is_deleted = True
+    db.commit()
+    return {"message": "Parking lot request deleted"}
 
 
 @router.post(
@@ -192,9 +357,11 @@ def approve_parking_lot_submission(
     super_admin: models.AdminUser = Depends(require_super_admin),
 ) -> ParkingLotSubmissionItem:
     submission = _pending_submission(db, submission_id)
+    _owner(db, submission.submitted_by_admin_id)
     duplicate = db.scalar(
         select(models.Facility).where(
-            func.lower(models.Facility.name) == submission.name.casefold()
+            func.lower(models.Facility.name) == submission.name.casefold(),
+            models.Facility.is_deleted.is_(False),
         )
     )
     if duplicate:
@@ -215,7 +382,7 @@ def approve_parking_lot_submission(
     db.flush()
 
     submitter = db.get(models.AdminUser, submission.submitted_by_admin_id)
-    if submitter is None:
+    if submitter is None or submitter.is_deleted:
         raise HTTPException(status_code=409, detail="The submitting account no longer exists")
     if facility not in submitter.assigned_facilities:
         submitter.assigned_facilities.append(facility)
@@ -263,7 +430,7 @@ def get_dashboard(
         .where(models.Facility.id == target_facility_id)
         .options(selectinload(models.Facility.cameras))
     )
-    if not facility:
+    if not facility or facility.is_deleted:
         raise HTTPException(status_code=404, detail="Facility not found")
 
     history = list(
@@ -299,6 +466,7 @@ def get_logs(
 ) -> list[models.MonitoringLog]:
     target_facility_id = _admin_facility_id(current_admin, facility_id)
     require_facility_access(current_admin, target_facility_id)
+    _active_facility(db, target_facility_id)
     return list(
         db.scalars(
             select(models.MonitoringLog)
@@ -317,6 +485,7 @@ def get_reports(
 ) -> dict[str, object]:
     target_facility_id = _admin_facility_id(current_admin, facility_id)
     require_facility_access(current_admin, target_facility_id)
+    _active_facility(db, target_facility_id)
     snapshots = list(
         db.scalars(
             select(models.OccupancySnapshot)

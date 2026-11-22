@@ -11,6 +11,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 
 import { getCachedFacility, getFacility } from "../api/client";
+import { getOccupancyStatus } from "../utils/occupancy";
 
 const LIVE_REFRESH_MS = 5000;
 
@@ -111,6 +112,8 @@ export default function FacilityDetailsScreen({ facilityId, onBack, onViewMap })
     );
   }
 
+  const occupancy = getOccupancyStatus(facility);
+
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
       <ImageBackground
@@ -155,9 +158,9 @@ export default function FacilityDetailsScreen({ facilityId, onBack, onViewMap })
 
         <OfflineNotice message={error} />
 
-        <View style={styles.availabilityCard}>
+        <View style={[styles.availabilityCard, { backgroundColor: occupancy.backgroundColor, borderColor: occupancy.color }]}>
           <View>
-            <Text style={styles.availableValue}>
+            <Text style={[styles.availableValue, { color: occupancy.textColor }]}>
               {facility.available_slots}
               <Text style={styles.totalValue}> / {facility.total_slots}</Text>
             </Text>
@@ -165,7 +168,7 @@ export default function FacilityDetailsScreen({ facilityId, onBack, onViewMap })
           </View>
 
           <View style={styles.occupancyCircle}>
-            <Text style={styles.circleValue}>{facility.occupancy_percentage}%</Text>
+            <Text style={[styles.circleValue, { borderColor: occupancy.color }]}>{facility.occupancy_percentage}%</Text>
             <Text style={styles.metricLabel}>Occupied</Text>
           </View>
         </View>

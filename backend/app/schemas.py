@@ -14,6 +14,12 @@ class LoginRequest(BaseModel):
     password: str
 
 
+class AdminRegistrationCreate(BaseModel):
+    full_name: str = Field(min_length=2, max_length=160)
+    email: str = Field(min_length=5, max_length=255)
+    password: str = Field(min_length=8, max_length=72)
+
+
 class AdminProfile(BaseModel):
     id: int
     email: str
@@ -22,6 +28,8 @@ class AdminProfile(BaseModel):
     facility_ids: list[int]
     role: str
     is_super_admin: bool
+    approval_status: Literal["pending", "approved", "rejected"] = "approved"
+    is_active: bool = True
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -49,6 +57,19 @@ class ParkingLotSubmissionItem(BaseModel):
     facility_id: int | None = None
     submitted_at: datetime
     reviewed_at: datetime | None = None
+
+
+class FacilityUpdate(BaseModel):
+    name: str | None = Field(default=None, min_length=3, max_length=160)
+    address: str | None = Field(default=None, min_length=5, max_length=255)
+    latitude: float | None = Field(default=None, ge=-90, le=90)
+    longitude: float | None = Field(default=None, ge=-180, le=180)
+    total_slots: int | None = Field(default=None, ge=1, le=10000)
+    owner_id: int | None = Field(default=None, ge=1)
+
+
+class FacilityCreate(ParkingLotSubmissionCreate):
+    owner_id: int = Field(ge=1)
 
 
 class SlotStatus(BaseModel):
@@ -83,6 +104,7 @@ class FacilitySummary(BaseModel):
     occupied_slots: int
     occupancy_percentage: float
     updated_at: datetime | None = None
+    slot_count: int = 0
 
 
 class FacilityAvailability(BaseModel):

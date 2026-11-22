@@ -23,7 +23,9 @@ sys.path.insert(0, str(BACKEND))
 load_dotenv(BACKEND / ".env")
 
 from app import models  # noqa: E402
+from app.db.account_migration import migrate_account_fields  # noqa: E402
 from app.db.session import SessionLocal  # noqa: E402
+from app.db.session import engine  # noqa: E402
 
 
 ENDPOINT = os.environ["APPWRITE_ENDPOINT"].rstrip("/")
@@ -79,18 +81,21 @@ def model_rows(session, model):
 
 
 def main() -> None:
+    migrate_account_fields(engine)
     session = SessionLocal()
     try:
         facilities = model_rows(session, models.Facility)
         admins = model_rows(session, models.AdminUser)
         mapping = [
-            ("facilities", facilities, lambda x: {"facility_code": x.facility_code, "name": x.name,
+            ("facilities", facilities, lambda x: {"is_deleted": x.is_deleted, "facility_code": x.facility_code, "name": x.name,
              "address": x.address, "latitude": x.latitude, "longitude": x.longitude,
              "total_slots": x.total_slots, "created_at": clean(x.created_at)}),
-            ("admin_users", admins, lambda x: {"email": x.email, "full_name": x.full_name,
+            ("admin_users", admins, lambda x: {"is_deleted": x.is_deleted, "email": x.email, "full_name": x.full_name,
              "hashed_password": x.hashed_password, "is_active": x.is_active, "facility_id": x.facility_id,
-             "facility_ids": json.dumps(x.facility_ids), "created_at": clean(x.created_at)}),
+             "facility_ids": json.dumps(x.facility_ids), "role": x.role,
+             "approval_status": x.approval_status, "created_at": clean(x.created_at)}),
             ("parking_lot_submissions", model_rows(session, models.ParkingLotSubmission), lambda x: {
+             "is_deleted": x.is_deleted,
              "name": x.name, "address": x.address, "latitude": x.latitude, "longitude": x.longitude,
              "total_slots": x.total_slots, "status": x.status, "submitted_by_admin_id": x.submitted_by_admin_id,
              "reviewed_by_admin_id": x.reviewed_by_admin_id, "facility_id": x.facility_id,
