@@ -166,7 +166,6 @@ p {
 .login-heading p,
 .topbar span,
 .panel-header span,
-.camera-item span,
 .metric-card small,
 .log-item time,
 .empty-text,
@@ -604,9 +603,8 @@ select:focus {
 .prototype-grid {
   display: grid;
   grid-template-columns:
-    minmax(280px, 0.95fr)
-    minmax(260px, 0.8fr)
-    minmax(360px, 1.25fr);
+    minmax(280px, 0.8fr)
+    minmax(420px, 1.4fr);
   gap: 18px;
   margin-top: 26px;
 }
@@ -657,47 +655,6 @@ select:focus {
 
 .red-text {
   color: #d81919 !important;
-}
-
-.prototype-camera-list {
-  display: grid;
-  gap: 30px;
-}
-
-.prototype-camera-item {
-  display: grid;
-  grid-template-columns: 18px minmax(0, 1fr) auto;
-  gap: 14px;
-  align-items: center;
-  color: #050a13;
-}
-
-.camera-dot {
-  width: 14px;
-  height: 14px;
-  border-radius: 999px;
-}
-
-.online-dot {
-  background: #078525;
-}
-
-.offline-dot {
-  background: #7b8792;
-}
-
-.prototype-camera-item strong,
-.prototype-camera-item b {
-  font-size: 16px;
-}
-
-.camera-health {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 12px;
-  margin-top: 54px;
-  color: #058323;
 }
 
 .panel-title-row {
@@ -927,32 +884,6 @@ select:focus {
   border-radius: 8px;
   padding: 13px 14px;
   background: #fcfdfc;
-}
-
-.camera-card-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 14px;
-}
-
-.camera-detail-card {
-  display: grid;
-  grid-template-columns: 16px minmax(0, 1fr) auto;
-  gap: 10px;
-  align-items: center;
-  border: 1px solid #dbe3e4;
-  border-radius: 8px;
-  padding: 16px;
-  background: #fbfdfb;
-}
-
-.camera-detail-card small,
-.camera-detail-card time {
-  grid-column: 2 / -1;
-  color: #5b685f;
-  font-size: 13px;
-  font-weight: 700;
-  overflow-wrap: anywhere;
 }
 
 .settings-grid {
@@ -1330,12 +1261,7 @@ select:focus {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .prototype-grid .recent-logs-panel {
-    grid-column: 1 / -1;
-  }
-
-  .slot-grid,
-  .camera-card-grid {
+  .slot-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -1379,10 +1305,6 @@ select:focus {
   .prototype-metrics,
   .report-strip {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .prototype-grid .recent-logs-panel {
-    grid-column: auto;
   }
 
   .prototype-panel {
@@ -1501,7 +1423,6 @@ select:focus {
   }
 
   .slot-grid,
-  .camera-card-grid,
   .lot-coordinate-grid {
     grid-template-columns: 1fr;
   }
@@ -1578,9 +1499,7 @@ select:focus {
     padding-left: 12px;
   }
 
-  .facility-info-row,
-  .camera-detail-card,
-  .prototype-camera-item {
+  .facility-info-row {
     gap: 8px;
   }
 }

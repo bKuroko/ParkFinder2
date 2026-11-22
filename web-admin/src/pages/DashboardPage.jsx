@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 import {
-  Camera,
   CarFront,
   CheckCircle2,
   Download,
@@ -48,10 +47,6 @@ const VIEW_COPY = {
     title: "Logs & Reports",
     subtitle: "Review monitoring events and occupancy report summaries."
   },
-  cameras: {
-    title: "Camera Status",
-    subtitle: "Check camera health for the assigned parking facility."
-  },
   settings: {
     title: "Facility Settings",
     subtitle: "View the assigned facility profile used by ParkFinder."
@@ -72,7 +67,6 @@ const EVENT_TYPE_OPTIONS = [
   ["ai_update", "AI Updates"],
   ["vehicle_entry", "Vehicle Entry"],
   ["vehicle_exit", "Vehicle Exit"],
-  ["camera_status", "Camera Status"],
   ["system", "System"],
   ["error", "Errors"]
 ];
@@ -85,7 +79,7 @@ function eventTypeLabel(value) {
 function getLogEventType(log) {
   const detailsType = log.details?.event_type;
   if (detailsType) {
-    return detailsType;
+    return EVENT_TYPE_OPTIONS.some(([key]) => key === detailsType) ? detailsType : "system";
   }
 
   const text = `${log.level || ""} ${log.message || ""}`.toLowerCase();
@@ -98,13 +92,20 @@ function getLogEventType(log) {
   if (text.includes("exit") || text.includes("left") || text.includes("available")) {
     return "vehicle_exit";
   }
-  if (text.includes("camera") || text.includes("cctv") || text.includes("stream")) {
-    return "camera_status";
-  }
   if (text.includes("ai") || text.includes("slot data") || text.includes("processor")) {
     return "ai_update";
   }
   return "system";
+}
+
+function isCameraStatusLog(log) {
+  const text = `${log.level || ""} ${log.message || ""}`.toLowerCase();
+  return (
+    log.details?.event_type === "camera_status" ||
+    text.includes("camera") ||
+    text.includes("cctv") ||
+    text.includes("stream")
+  );
 }
 
 function getLogSlotNumber(log) {
@@ -345,12 +346,13 @@ export default function DashboardPage({ onLogout }) {
   );
   const canSwitchFacilities = facilities.length > 1;
     const adminInitial = (adminProfile?.full_name || "Manager").trim().charAt(0).toUpperCase();
-  const cameras = facilityDetail?.cameras || dashboard?.cameras || [];
   const slots = [...(facilityDetail?.slots || [])].sort((a, b) =>
     a.slot_number.localeCompare(b.slot_number, undefined, { numeric: true })
   );
   const history = dashboard?.history || [];
-  const logs = allLogs.length ? allLogs : dashboard?.logs || [];
+  const logs = (allLogs.length ? allLogs : dashboard?.logs || []).filter(
+    (log) => !isCameraStatusLog(log)
+  );
   const recentLogs = logs.slice(0, 5);
   const slotOptions = slots.map((slot) => slot.slot_number);
   const filteredLogs = logs.filter((log) => {
@@ -369,20 +371,18 @@ export default function DashboardPage({ onLogout }) {
     ? Number(((facility.available_slots / facility.total_slots) * 100).toFixed(1))
     : 0;
   const latestSample = facility.updated_at || history[0]?.captured_at;
-  const onlineCameras = cameras.filter((camera) => camera.status === "online").length;
   const activeCopy = VIEW_COPY[activeView] || VIEW_COPY.dashboard;
 
   const allNavItems = [
     [Home, "Dashboard", "dashboard"],
     [SlidersHorizontal, "Slot Overview", "slots"],
     [FileText, "Logs & Reports", "logs"],
-    [Camera, "Camera Status", "cameras"],
     [MapPin, "Parking Lots", "parking-lots"],
     [Settings, "Facility Settings", "settings"],
     [Users, "Users", "users"]
   ];
   const navItems = isSuperAdmin
-    ? allNavItems.filter(([, , view]) => !["logs", "cameras"].includes(view))
+    ? allNavItems.filter(([, , view]) => view !== "logs")
     : facilities.length === 0
       ? allNavItems.filter(([, , view]) => view === "parking-lots")
       : allNavItems;
@@ -624,43 +624,6 @@ export default function DashboardPage({ onLogout }) {
     );
   }
 
-  function cameraStatusPanel({ full = false } = {}) {
-    return (
-      <article className={`prototype-panel camera-panel ${full ? "full-panel" : ""}`}>
-        <h3>Camera Status</h3>
-        <div className={full ? "camera-card-grid" : "prototype-camera-list"}>
-          {cameras.length ? (
-            cameras.map((camera, index) => (
-              <div className={full ? "camera-detail-card" : "prototype-camera-item"} key={camera.id}>
-                <span className={camera.status === "online" ? "camera-dot online-dot" : "camera-dot offline-dot"} />
-                <strong>{camera.name || `Camera ${index + 1}`}</strong>
-                <b className={camera.status === "online" ? "green-text" : "red-text"}>{camera.status}</b>
-                {full ? (
-                  <>
-                    <small>{camera.source_url}</small>
-                    <time>Last heartbeat: {formatDateTime(camera.last_heartbeat_at)}</time>
-                  </>
-                ) : null}
-              </div>
-            ))
-          ) : (
-            <p className="empty-text">No cameras registered for this facility.</p>
-          )}
-        </div>
-        <div className="camera-health">
-          <ShieldCheck size={20} />
-          <strong>
-            {!cameras.length
-              ? "No cameras configured yet"
-              : onlineCameras === cameras.length
-              ? "All cameras are functioning properly"
-              : `${onlineCameras}/${cameras.length} cameras online`}
-          </strong>
-        </div>
-      </article>
-    );
-  }
-
   function logsPanel({ full = false } = {}) {
     const visibleLogs = full ? filteredLogs : recentLogs;
     return (
@@ -824,14 +787,6 @@ export default function DashboardPage({ onLogout }) {
       );
     }
 
-    if (activeView === "cameras") {
-      return (
-        <section className="view-stack">
-          {cameraStatusPanel({ full: true })}
-        </section>
-      );
-    }
-
     if (activeView === "settings") {
       return (
         <section className="settings-grid">
@@ -945,7 +900,6 @@ export default function DashboardPage({ onLogout }) {
         {summaryMetrics}
         <section className="prototype-grid">
           {facilityInfoPanel()}
-          {cameraStatusPanel()}
           {logsPanel()}
         </section>
         {accessBanner()}
