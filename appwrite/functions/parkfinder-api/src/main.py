@@ -183,10 +183,15 @@ def _admin_profile(admin: dict[str, Any]) -> dict[str, Any]:
     ids = _json_field(admin.get("facility_ids"), [])
     if admin.get("facility_id") is not None:
         ids = sorted(set(ids + [int(admin["facility_id"])]))
-    super_admin = admin.get("facility_id") is None and not ids
+    # Legacy rows have no role column. Infer their old role only for those rows;
+    # newly registered owners always carry the explicit facility_admin role.
+    role = admin.get("role") or ("super_admin" if admin.get("facility_id") is None and not ids else "facility_admin")
+    super_admin = role == "super_admin"
     return {"id": _id(admin), "email": admin.get("email"), "full_name": admin.get("full_name"),
             "facility_id": admin.get("facility_id"), "facility_ids": ids,
-            "role": "super_admin" if super_admin else "facility_admin", "is_super_admin": super_admin}
+            "role": role, "is_super_admin": super_admin,
+            "approval_status": admin.get("approval_status") or "approved",
+            "is_active": bool(admin.get("is_active", True))}
 
 
 def _current_admin(headers: dict[str, str]) -> dict[str, Any]:
@@ -305,11 +310,37 @@ def _run(method: str, path: str, query: dict[str, str], headers: dict[str, str],
         admin = matches[0] if matches else None
         if not admin or not PASSWORDS.verify(str(body.get("password", "")), admin.get("hashed_password", "")):
             raise ApiError(401, "Incorrect email or password")
+        approval_status = admin.get("approval_status") or "approved"
+        if approval_status == "pending":
+            raise ApiError(403, "Your account is waiting for super-admin approval")
+        if approval_status == "rejected":
+            raise ApiError(403, "Your registration was not approved")
         if not admin.get("is_active", True):
             raise ApiError(403, "Admin account is inactive")
         expiry = datetime.now(timezone.utc) + timedelta(minutes=int(os.environ.get("ACCESS_TOKEN_EXPIRE_MINUTES", "720")))
         token = jwt.encode({"sub": str(_id(admin)), "exp": expiry}, JWT_SECRET, algorithm="HS256")
         return {"access_token": token, "token_type": "bearer"}, 200
+
+    if method == "POST" and path == "/auth/register":
+        full_name = str(body.get("full_name", "")).strip()
+        email = str(body.get("email", "")).strip().lower()
+        password = str(body.get("password", ""))
+        if len(full_name) < 2 or len(full_name) > 160:
+            raise ApiError(422, "Name must be between 2 and 160 characters")
+        if not re.fullmatch(r"[^\s@]+@[^\s@]+\.[^\s@]+", email) or len(email) > 255:
+            raise ApiError(422, "Enter a valid email address")
+        if len(password) < 8 or len(password.encode("utf-8")) > 72:
+            raise ApiError(422, "Password must be between 8 and 72 characters")
+        if _list("admins", [_query("equal", "email", email)]):
+            raise ApiError(409, "An account with this email already exists")
+        # Preserve the existing numeric account IDs used by facility submissions.
+        row = _create("admins", {"email": email, "full_name": full_name,
+            "hashed_password": PASSWORDS.hash(password), "is_active": False,
+            "facility_id": None, "facility_ids": "[]", "role": "facility_admin",
+            "approval_status": "pending", "created_at": _now()})
+        return {"id": _id(row), "email": email, "full_name": full_name,
+                "approval_status": "pending",
+                "message": "Registration submitted. You can sign in after super-admin approval."}, 201
 
     if method == "GET" and path == "/auth/me":
         return _admin_profile(_current_admin(headers)), 200
@@ -360,6 +391,22 @@ def _run(method: str, path: str, query: dict[str, str], headers: dict[str, str],
             if not profile["is_super_admin"]:
                 raise ApiError(403, "Super-admin access is required")
             return [_admin_profile(a) for a in sorted(_list("admins"), key=lambda a: a.get("full_name", ""))], 200
+        account_decision = re.fullmatch(r"/admin/users/(\d+)/(approve|reject)", path)
+        if account_decision and method == "POST":
+            if not profile["is_super_admin"]:
+                raise ApiError(403, "Super-admin access is required")
+            account = _get("admins", account_decision.group(1))
+            if not account:
+                raise ApiError(404, "Account not found")
+            if (account.get("approval_status") or "approved") != "pending":
+                raise ApiError(409, "Account registration was already reviewed")
+            approved = account_decision.group(2) == "approve"
+            saved = _update("admins", account["$id"], {
+                "role": "facility_admin",
+                "approval_status": "approved" if approved else "rejected",
+                "is_active": approved,
+            })
+            return _admin_profile(saved), 200
         if path == "/admin/parking-lot-submissions" and method == "GET":
             rows = _list("submissions")
             if not profile["is_super_admin"]:
